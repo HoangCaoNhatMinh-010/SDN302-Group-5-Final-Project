@@ -1,0 +1,285 @@
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Menu,
+  Bell,
+  Search,
+  LogOut,
+  User,
+  Shield,
+  Check,
+  ChevronDown,
+  Sparkles,
+  ExternalLink,
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { ROLES, ROLE_LABELS } from '../../utils/constants';
+import { DEMO_USERS, MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { Avatar, Badge, Dropdown, DropdownItem, DropdownDivider } from '../common';
+
+export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
+  const { currentUser, role, logout, setRole } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS);
+
+  const unreadCount = unreadNotifications.filter((n) => !n.read).length;
+
+  const handleRoleSwitch = (newRole) => {
+    setRole(newRole);
+    toast.success(`Đã chuyển sang vai trò: ${ROLE_LABELS[newRole]}`);
+    
+    // Navigate to new role dashboard
+    const roleRoutes = {
+      [ROLES.PATIENT]: '/patient/dashboard',
+      [ROLES.RECEPTIONIST]: '/receptionist/dashboard',
+      [ROLES.DOCTOR]: '/doctor/dashboard',
+      [ROLES.ADMIN]: '/admin/dashboard',
+      [ROLES.CLINIC_MANAGER]: '/manager/dashboard',
+    };
+    navigate(roleRoutes[newRole] || '/');
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.info('Bạn đã đăng xuất khỏi hệ thống');
+    navigate('/login');
+  };
+
+  const markAllAsRead = () => {
+    setUnreadNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    toast.success('Đã đánh dấu đã đọc tất cả thông báo');
+  };
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
+      {/* Left side: Hamburger button + Logo */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+          aria-label="Toggle Sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Logo and Brand */}
+        <div
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2.5 cursor-pointer select-none"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 text-white shadow-sm shadow-primary-500/20">
+            <svg
+              className="w-5 h-5 fill-current"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
+            </svg>
+          </div>
+          <div className="hidden sm:block">
+            <span className="text-base font-bold tracking-tight text-slate-900">
+              MedCare<span className="text-primary-600">Plus</span>
+            </span>
+            <span className="ml-2 hidden rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-primary-700 md:inline-block border border-primary-200">
+              Phòng khám Đa khoa
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle: Search input (hidden on mobile) */}
+      <div className="hidden md:flex items-center max-w-xs lg:max-w-md w-full mx-4">
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm bệnh nhân, bác sĩ, dịch vụ... (Ctrl + K)"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+          />
+        </div>
+      </div>
+
+      {/* Right side: Role Switcher + Notifications + User Avatar */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Fast Role Switcher (Crucial for Reviewer / Multi-role simulation) */}
+        <Dropdown
+          align="right"
+          trigger={
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all">
+              <Shield className="w-3.5 h-3.5 text-primary-600" />
+              <span className="hidden lg:inline text-slate-500">Vai trò:</span>
+              <span className="font-semibold text-slate-800">
+                {ROLE_LABELS[role] || 'Chọn vai trò'}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+            </div>
+          }
+        >
+          <div className="px-3 py-2 border-b border-slate-100">
+            <p className="text-xs font-semibold text-slate-800 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              Chuyển vai trò thử nghiệm
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Chọn tài khoản demo để trải nghiệm giao diện
+            </p>
+          </div>
+          {Object.values(ROLES).map((r) => {
+            const isCurrent = role === r;
+            const demoUser = DEMO_USERS[r];
+            return (
+              <button
+                key={r}
+                onClick={() => handleRoleSwitch(r)}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors ${
+                  isCurrent
+                    ? 'bg-primary-50 font-semibold text-primary-700'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span>{ROLE_LABELS[r]}</span>
+                    {isCurrent && (
+                      <span className="text-[10px] bg-primary-100 text-primary-800 px-1.5 py-0.2 rounded font-normal">
+                        Hiện tại
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    {demoUser?.name}
+                  </span>
+                </div>
+                {isCurrent && <Check className="w-4 h-4 text-primary-600 flex-shrink-0" />}
+              </button>
+            );
+          })}
+        </Dropdown>
+
+        {/* Notifications Dropdown */}
+        <Dropdown
+          align="right"
+          trigger={
+            <button
+              type="button"
+              className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none"
+              aria-label="Thông báo"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          }
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+            <span className="text-xs font-semibold text-slate-800">
+              Thông báo ({unreadCount})
+            </span>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-[11px] font-medium text-primary-600 hover:text-primary-800"
+              >
+                Đánh dấu đã đọc
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+            {unreadNotifications.map((notif) => (
+              <div
+                key={notif.id}
+                className={`p-3 text-xs transition-colors hover:bg-slate-50 ${
+                  !notif.read ? 'bg-sky-50/40' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between gap-1">
+                  <h5 className="font-semibold text-slate-800">{notif.title}</h5>
+                  <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                    {notif.time}
+                  </span>
+                </div>
+                <p className="mt-1 text-slate-600 line-clamp-2">{notif.message}</p>
+              </div>
+            ))}
+          </div>
+          <div className="p-2 border-t border-slate-100 text-center">
+            <button
+              onClick={() => navigate('/notifications')}
+              className="text-xs font-medium text-primary-600 hover:text-primary-800"
+            >
+              Xem tất cả thông báo
+            </button>
+          </div>
+        </Dropdown>
+
+        {/* User Profile Menu */}
+        <Dropdown
+          align="right"
+          trigger={
+            <div className="flex items-center gap-2 pl-1 cursor-pointer">
+              <Avatar
+                src={currentUser?.avatar}
+                name={currentUser?.name}
+                size="sm"
+                status="online"
+              />
+              <div className="hidden text-left xl:block">
+                <p className="text-xs font-semibold text-slate-800 leading-tight">
+                  {currentUser?.name || 'Tài khoản'}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {ROLE_LABELS[role] || 'Người dùng'}
+                </p>
+              </div>
+              <ChevronDown className="hidden xl:block w-3.5 h-3.5 text-slate-400" />
+            </div>
+          }
+        >
+          <div className="px-3 py-2 border-b border-slate-100">
+            <p className="text-xs font-semibold text-slate-900">{currentUser?.name}</p>
+            <p className="text-[11px] text-slate-500 truncate">{currentUser?.email}</p>
+            <div className="mt-1.5">
+              <Badge variant="primary" size="sm">
+                {ROLE_LABELS[role]}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="py-1">
+            <DropdownItem
+              icon={<User className="w-4 h-4" />}
+              onClick={() => navigate('/profile')}
+            >
+              Hồ sơ cá nhân
+            </DropdownItem>
+            <DropdownItem
+              icon={<Bell className="w-4 h-4" />}
+              onClick={() => navigate('/notifications')}
+            >
+              Thông báo
+            </DropdownItem>
+          </div>
+
+          <DropdownDivider />
+
+          <div className="py-1">
+            <DropdownItem
+              icon={<LogOut className="w-4 h-4" />}
+              variant="danger"
+              onClick={handleLogout}
+            >
+              Đăng xuất
+            </DropdownItem>
+          </div>
+        </Dropdown>
+      </div>
+    </header>
+  );
+};
