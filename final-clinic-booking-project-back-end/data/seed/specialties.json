@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Nội tổng quát",
+    "description": "Khám và tư vấn sức khỏe tổng quát.",
+    "active": true
+  },
+  {
+    "name": "Nhi khoa",
+    "description": "Chăm sóc sức khỏe trẻ em.",
+    "active": true
+  },
+  {
+    "name": "Tim mạch",
+    "description": "Khám và điều trị bệnh lý tim mạch.",
+    "active": true
+  },
+  {
+    "name": "Da liễu",
+    "description": "Khám và điều trị bệnh lý da.",
+    "active": true
+  }
+]

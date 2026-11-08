@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Khám tổng quát",
+    "description": "Khám lâm sàng tổng quát.",
+    "price": 250000,
+    "durationMinutes": 30,
+    "active": true
+  },
+  {
+    "name": "Tư vấn chuyên khoa",
+    "description": "Tư vấn với bác sĩ chuyên khoa.",
+    "price": 350000,
+    "durationMinutes": 30,
+    "active": true
+  }
+]
