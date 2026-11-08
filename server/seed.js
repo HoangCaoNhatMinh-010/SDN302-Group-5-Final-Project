@@ -6,11 +6,22 @@ import { Doctor } from './models/Doctor.js';
 import { Specialty } from './models/Specialty.js';
 import { Appointment } from './models/Appointment.js';
 import { Notification } from './models/Notification.js';
+import { AdminSetting } from './models/AdminSetting.js';
+import { AuditLog } from './models/AuditLog.js';
 
 dotenv.config();
 
 const seedData = async () => {
   try {
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if ((adminEmail && !adminPassword) || (!adminEmail && adminPassword)) {
+      throw new Error('Cần khai báo đồng thời ADMIN_EMAIL và ADMIN_PASSWORD để tạo tài khoản admin.');
+    }
+    if (adminPassword && adminPassword.length < 8) {
+      throw new Error('ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
+    }
+
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medcare_db');
     console.log('[Seed] Đã kết nối MongoDB thành công');
 
@@ -21,6 +32,8 @@ const seedData = async () => {
     await Specialty.deleteMany();
     await Appointment.deleteMany();
     await Notification.deleteMany();
+    await AdminSetting.deleteMany();
+    await AuditLog.deleteMany();
     console.log('[Seed] Đã làm sạch dữ liệu cũ');
 
     // 1. Tạo tài khoản Bệnh nhân Demo
@@ -38,6 +51,19 @@ const seedData = async () => {
       address: 'Quận 1, TP. Hồ Chí Minh',
     });
     console.log('[Seed] Đã tạo Bệnh nhân mẫu:', patientUser.email);
+
+    if (adminEmail) {
+      const adminUser = await User.create({
+        name: process.env.ADMIN_NAME?.trim() || 'Quản trị viên',
+        email: adminEmail,
+        password: adminPassword,
+        role: 'ADMIN',
+        title: 'Quản trị viên hệ thống',
+      });
+      console.log('[Seed] Đã tạo tài khoản quản trị:', adminUser.email);
+    } else {
+      console.warn('[Seed] Bỏ qua tài khoản admin. Khai báo ADMIN_EMAIL và ADMIN_PASSWORD để tạo tài khoản này.');
+    }
 
     // 2. Tạo Hồ sơ Người thân mẫu cho bệnh nhân
     const familyMembers = await FamilyMember.insertMany([
@@ -236,4 +262,3 @@ const seedData = async () => {
 };
 
 seedData();
-

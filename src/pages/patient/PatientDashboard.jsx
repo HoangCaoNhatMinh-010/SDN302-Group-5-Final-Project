@@ -99,7 +99,7 @@ export const PatientDashboard = () => {
             Chào mừng, {currentUser?.name || 'Nguyễn Văn Minh'}
           </h1>
           <p className="mt-2 text-sm text-sky-100 leading-relaxed">
-            Chào mừng bạn đến hệ thống đặt lịch khám trực tuyến MedCare (MongoDB & Express). Bạn có thể dễ dàng tra cứu lịch trống của bác sĩ, chủ động đặt lịch khám và quản lý người thân.
+            Chào mừng bạn đến hệ thống đặt lịch khám trực tuyến MedCare (Được phát triển bằng MongoDB & Express). Bạn có thể dễ dàng tra cứu lịch trống của bác sĩ, chủ động đặt lịch khám và quản lý người thân.
           </p>
 
           {/* Quick Actions inside banner */}

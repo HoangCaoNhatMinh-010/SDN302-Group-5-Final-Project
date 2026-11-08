@@ -25,6 +25,12 @@ export const protect = async (req, res, next) => {
         message: 'Tài khoản người dùng này không còn tồn tại trên hệ thống.',
       });
     }
+    if (!currentUser.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
+      });
+    }
 
     req.user = currentUser;
     next();
@@ -47,4 +53,3 @@ export const restrictTo = (...roles) => {
     next();
   };
 };
-

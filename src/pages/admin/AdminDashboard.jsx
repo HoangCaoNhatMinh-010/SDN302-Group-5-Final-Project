@@ -1,20 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Briefcase,
   Sliders,
-  ShieldCheck,
   History,
   Key,
   Server,
-  Activity,
-  CheckCircle,
-  FileCheck,
-  Cpu,
-  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { adminService } from '../../services/adminService';
+import { ROLES } from '../../utils/constants';
 import {
   Breadcrumb,
   Button,
@@ -36,41 +32,29 @@ import {
 export const AdminDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState('');
 
-  const auditEvents = [
-    {
-      id: 'AUD-8821',
-      action: 'Cập nhật cấu hình slot',
-      user: 'Admin Hệ Thống',
-      target: 'Chuyên khoa Nội (20 slot/buổi)',
-      time: '12 phút trước',
-      status: 'Thành công',
-    },
-    {
-      id: 'AUD-8820',
-      action: 'Gán vai trò RBAC',
-      user: 'Admin Hệ Thống',
-      target: 'bs.minhanh@medcare.vn -> DOCTOR',
-      time: '1 giờ trước',
-      status: 'Thành công',
-    },
-    {
-      id: 'AUD-8819',
-      action: 'Thêm mới dịch vụ',
-      user: 'Nguyễn Hoàng Nam (Manager)',
-      target: 'Nội soi tiêu hóa không đau',
-      time: '3 giờ trước',
-      status: 'Thành công',
-    },
-    {
-      id: 'AUD-8818',
-      action: 'Đồng bộ HIS/LIS webhook',
-      user: 'Hệ thống tự động',
-      target: 'Webhook ID #392',
-      time: '5 giờ trước',
-      status: 'Thành công',
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    adminService.getSummary()
+      .then((response) => {
+        if (active) setSummary(response.data);
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message || 'Không thể tải dữ liệu quản trị.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const userCounts = summary?.usersByRole || [];
+  const staffCount = userCounts
+    .filter((item) => item._id !== ROLES.PATIENT && item._id !== ROLES.ADMIN)
+    .reduce((total, item) => total + item.count, 0);
+  const totalUsers = userCounts.reduce((total, item) => total + item.count, 0);
+  const auditEvents = summary?.recentAuditLogs || [];
 
   return (
     <div className="space-y-6">
@@ -83,7 +67,7 @@ export const AdminDashboard = () => {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm mb-3">
               <Server className="w-3.5 h-3.5 text-indigo-300" />
-              <span>Hệ thống vận hành ổn định • Uptime 99.98%</span>
+              <span>{summary ? 'Dữ liệu quản trị trực tiếp' : 'Đang tải dữ liệu hệ thống'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Quản trị hệ thống
@@ -125,41 +109,47 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
+      {error && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
       {/* 2. Admin Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Bác sĩ & nhân viên"
-          value="48"
-          trend="+3"
-          trendType="up"
-          trendLabel="Tháng này"
+          value={summary ? staffCount : '—'}
+          trend={summary ? `${totalUsers} tài khoản` : 'Đang tải'}
+          trendType="neutral"
+          trendLabel="Không tính bệnh nhân và admin"
           icon={<Users className="w-5 h-5 text-indigo-600" />}
           iconColor="bg-indigo-50 text-indigo-600"
         />
         <StatCard
           title="Dịch vụ y tế"
-          value="120"
-          trend="Đang mở"
+          value={summary ? summary.specialtyCount : '—'}
+          trend={summary ? 'Đã lưu' : 'Đang tải'}
           trendType="neutral"
-          trendLabel="14 chuyên khoa"
+          trendLabel="Chuyên khoa / dịch vụ"
           icon={<Briefcase className="w-5 h-5 text-sky-600" />}
           iconColor="bg-sky-50 text-sky-600"
         />
         <StatCard
-          title="Tỉ lệ slot được đặt"
-          value="86%"
-          trend="+8%"
-          trendType="up"
-          trendLabel="So với tuần trước"
+          title="Lịch hẹn"
+          value={summary ? summary.appointmentCount : '—'}
+          trend="Tổng số"
+          trendType="neutral"
+          trendLabel="Trong cơ sở dữ liệu"
           icon={<Sliders className="w-5 h-5 text-emerald-600" />}
           iconColor="bg-emerald-50 text-emerald-600"
         />
         <StatCard
           title="Nhật ký Audit hôm nay"
-          value="342"
-          trend="An toàn"
-          trendType="up"
-          trendLabel="0 vi phạm bảo mật"
+          value={summary ? summary.auditCount : '—'}
+          trend="Hôm nay"
+          trendType="neutral"
+          trendLabel="Sự kiện audit"
           icon={<History className="w-5 h-5 text-amber-600" />}
           iconColor="bg-amber-50 text-amber-600"
         />
@@ -199,27 +189,34 @@ export const AdminDashboard = () => {
               {auditEvents.map((evt) => (
                 <TableRow key={evt.id}>
                   <TableCell className="font-mono text-xs text-slate-500">
-                    {evt.id}
+                    {evt.id.slice(-8)}
                   </TableCell>
                   <TableCell className="font-semibold text-xs text-slate-800">
                     {evt.action}
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">
-                    {evt.user}
+                    {evt.actorName}
                   </TableCell>
                   <TableCell className="text-xs text-slate-500 font-mono">
                     {evt.target}
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
-                    {evt.time}
+                    {new Date(evt.createdAt).toLocaleString('vi-VN')}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="success" size="sm" dot>
-                      {evt.status}
+                      Thành công
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
+              {summary && auditEvents.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-slate-500">
+                    Chưa có hoạt động quản trị nào được ghi nhận.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
