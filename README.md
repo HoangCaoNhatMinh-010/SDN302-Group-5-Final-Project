@@ -15,11 +15,6 @@ npm install
 
 # Khởi chạy dev server (cổng 5173)
 npm run dev
-# Trong trường hợp lệnh 'npm run dev' báo lỗi, thực hiện câu lệnh sau (Đối với PC Windows): 
-# $projectBin = Join-Path (Get-Location).Path 'node_modules\.bin'
-# $env:ComSpec = Join-Path $env:SystemRoot 'System32\cmd.exe'
-# $env:Path = "$projectBin;C:\Program Files\nodejs;$env:SystemRoot\System32;$env:SystemRoot;C:\Program Files\nodejs\node_modules\npm\bin"
-# npm run dev
 
 # Build dự án
 npm run build
