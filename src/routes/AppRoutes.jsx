@@ -31,6 +31,11 @@ import { FamilyMembersPage } from '../pages/patient/FamilyMembersPage';
 import { ReceptionistDashboard } from '../pages/receptionist/ReceptionistDashboard';
 import { DoctorDashboard } from '../pages/doctor/DoctorDashboard';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
+import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
+import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
+import { AdminAuditLogsPage } from '../pages/admin/AdminAuditLogsPage';
+import { AdminReportsPage } from '../pages/admin/AdminReportsPage';
+import { AdminDoctorsPage } from '../pages/admin/AdminDoctorsPage';
 import { ManagerDashboard } from '../pages/manager/ManagerDashboard';
 
 // Helper component to redirect root "/" to user's role dashboard
@@ -266,7 +271,15 @@ export const AppRoutes = () => {
           path="admin/staff"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Quản lý Bác sĩ & Nhân viên" category="Quản trị" />
+              <AdminUsersPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="admin/doctors"
+          element={
+            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+              <AdminDoctorsPage />
             </RoleRoute>
           }
         />
@@ -274,7 +287,7 @@ export const AppRoutes = () => {
           path="admin/services"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Quản lý Dịch vụ y tế" category="Quản trị" />
+              <AdminSettingsPage section="services" />
             </RoleRoute>
           }
         />
@@ -282,7 +295,7 @@ export const AppRoutes = () => {
           path="admin/slot-config"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Cấu hình Slot khám" category="Quản trị" />
+              <AdminSettingsPage section="slot-config" />
             </RoleRoute>
           }
         />
@@ -290,7 +303,7 @@ export const AppRoutes = () => {
           path="admin/policies"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Chính sách phòng khám" category="Quản trị" />
+              <AdminSettingsPage section="policies" />
             </RoleRoute>
           }
         />
@@ -298,7 +311,7 @@ export const AppRoutes = () => {
           path="admin/rbac"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Phân quyền người dùng (RBAC)" category="Quản trị" />
+              <AdminUsersPage mode="rbac" />
             </RoleRoute>
           }
         />
@@ -306,7 +319,7 @@ export const AppRoutes = () => {
           path="admin/consent"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Quản lý điều khoản & Consent" category="Quản trị" />
+              <AdminSettingsPage section="consent" />
             </RoleRoute>
           }
         />
@@ -314,7 +327,7 @@ export const AppRoutes = () => {
           path="admin/audit-logs"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Nhật ký hệ thống (Audit Log)" category="Quản trị" />
+              <AdminAuditLogsPage />
             </RoleRoute>
           }
         />
@@ -322,7 +335,7 @@ export const AppRoutes = () => {
           path="admin/integrations"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Tích hợp hệ thống HIS/LIS" category="Quản trị" />
+              <AdminSettingsPage section="integrations" />
             </RoleRoute>
           }
         />
@@ -330,7 +343,7 @@ export const AppRoutes = () => {
           path="admin/reminders"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Cấu hình nhắc hẹn tự động" category="Quản trị" />
+              <AdminSettingsPage section="reminders" />
             </RoleRoute>
           }
         />
@@ -338,7 +351,7 @@ export const AppRoutes = () => {
           path="admin/reports"
           element={
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <PlaceholderPage title="Báo cáo & Thống kê hệ thống" category="Quản trị" />
+              <AdminReportsPage />
             </RoleRoute>
           }
         />

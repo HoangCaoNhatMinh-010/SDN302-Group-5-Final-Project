@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema(
       enum: ['PATIENT', 'DOCTOR', 'RECEPTIONIST', 'CLINIC_MANAGER', 'ADMIN'],
       default: 'PATIENT',
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     avatar: {
       type: String,
       default: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
@@ -104,4 +108,3 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 export const User = mongoose.model('User', userSchema);
-

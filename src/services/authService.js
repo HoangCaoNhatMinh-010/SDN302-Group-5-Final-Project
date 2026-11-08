@@ -41,6 +41,10 @@ export const authService = {
         );
       });
 
+      if (matchedRole === ROLES.ADMIN) {
+        throw new Error(apiError.message || 'Không thể xác thực tài khoản admin với máy chủ.');
+      }
+
       if (matchedRole && matchedRole !== ROLES.PATIENT) {
         if (password.length < 6) {
           throw new Error('Mật khẩu phải chứa ít nhất 6 ký tự');

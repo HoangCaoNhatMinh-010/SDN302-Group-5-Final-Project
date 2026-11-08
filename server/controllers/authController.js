@@ -114,6 +114,12 @@ export const login = async (req, res) => {
         message: 'Mật khẩu không chính xác',
       });
     }
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
+      });
+    }
 
     const token = generateToken(user._id);
 
@@ -303,4 +309,3 @@ export const getMe = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-

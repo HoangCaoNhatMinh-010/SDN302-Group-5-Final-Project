@@ -73,6 +73,10 @@ export const LoginPage = () => {
 
   // Direct 1-click Demo Login
   const handleDirectDemoLogin = (r) => {
+    if (r === ROLES.ADMIN) {
+      setErrorMessage('Đăng nhập admin cần tài khoản có thật trong cơ sở dữ liệu. Hãy dùng ADMIN_EMAIL và ADMIN_PASSWORD đã cấu hình cho máy chủ.');
+      return;
+    }
     setIsLoading(true);
     setErrorMessage('');
     setTimeout(() => {
@@ -177,6 +181,11 @@ export const LoginPage = () => {
                   );
                 })}
               </div>
+              {activeDemoRole === ROLES.ADMIN && (
+                <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                  Tài khoản admin cần được tạo trong MongoDB bằng cấu hình ADMIN_EMAIL/ADMIN_PASSWORD; tài khoản demo không có quyền gọi API quản trị.
+                </p>
+              )}
             </div>
 
             {/* Error Message */}

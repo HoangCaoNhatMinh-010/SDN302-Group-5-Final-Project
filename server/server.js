@@ -11,6 +11,7 @@ import familyMemberRoutes from './routes/familyMemberRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Load config
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/v1/family-members', familyMemberRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -70,4 +72,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 MedCare Backend Server is running on http://localhost:${PORT}`);
 });
-

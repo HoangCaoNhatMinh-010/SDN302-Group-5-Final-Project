@@ -5,3 +5,4 @@ export * from './familyMemberService';
 export * from './appointmentService';
 export * from './doctorService';
 export * from './notificationService';
+export * from './adminService';
