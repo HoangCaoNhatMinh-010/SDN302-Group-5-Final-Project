@@ -27,7 +27,6 @@ import {
   Sparkles,
   Heart,
   Scissors,
-  MessageCircle,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
@@ -65,7 +64,6 @@ const ICON_MAP = {
   Sparkles,
   Heart,
   Scissors,
-  MessageCircle,
 };
 
 export const Sidebar = ({
@@ -210,19 +208,19 @@ export const Sidebar = ({
         {!isCollapsed ? (
           <div className="rounded-xl bg-slate-50 p-3 text-slate-500 border border-slate-200/60">
             <div className="flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span className="text-xs font-semibold text-slate-700">Hỗ trợ PawCare</span>
+              <HelpCircle className="w-4 h-4 text-primary-600 flex-shrink-0" />
+              <span className="text-xs font-semibold text-slate-700">Hỗ trợ kỹ thuật</span>
             </div>
             <p className="mt-1 text-[11px] text-slate-400 leading-tight">
-              Hotline Quán: 0901 234 567
+              Hotline CSKH: 1900 6868
             </p>
             <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-200/60 pt-1.5">
-              <span>PawCare Studio v1.0</span>
+              <span>PawCare Studio</span>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
             </div>
           </div>
         ) : (
-          <div className="flex justify-center text-slate-400 py-1" title="PawCare Studio v1.0">
+          <div className="flex justify-center text-slate-400 py-1" title="PawCare Studio">
             <HelpCircle className="w-4 h-4" />
           </div>
         )}
@@ -252,8 +250,8 @@ export const Sidebar = ({
           {/* Mobile drawer header with close button */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-amber-500 to-rose-500 flex items-center justify-center text-white font-bold text-xs">
-                🐾
+              <div className="h-7 w-7 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-xs">
+                MC
               </div>
               <span className="font-bold text-sm text-slate-800">PawCare Studio</span>
             </div>
@@ -272,11 +270,11 @@ export const Sidebar = ({
       {/* 2. Desktop & Tablet Static / Collapsible Sidebar */}
       <aside
         className={`
-          hidden lg:block flex-shrink-0 h-full transition-all duration-200 z-20
+          hidden lg:block flex-shrink-0 transition-all duration-200 z-20
           ${isCollapsed ? 'w-20' : 'w-64'}
         `}
       >
-        <div className="h-full">
+        <div className="sticky top-16 h-[calc(100vh-4rem)]">
           {sidebarContent}
         </div>
       </aside>

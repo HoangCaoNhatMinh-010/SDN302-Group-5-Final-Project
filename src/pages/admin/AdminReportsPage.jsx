@@ -55,7 +55,7 @@ export const AdminReportsPage = () => {
       {loading ? <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Đang tải báo cáo...</div> : report && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard title="Tổng người dùng" value={report.usersByRole.reduce((sum, item) => sum + item.count, 0)} />
+            <MetricCard title="Hồ sơ chủ thú cưng" value={report.ownerCount} />
             <MetricCard title="Tổng lịch hẹn" value={report.appointmentCount} />
             <MetricCard title="Chuyên khoa / dịch vụ" value={report.specialtyCount} />
             <MetricCard title="Nhóm trạng thái lịch hẹn" value={report.appointmentsByStatus.length} />

@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, KeyRound, ShieldCheck } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { Button, Card, CardContent } from '../../components/common';
 
 export const ResetPasswordPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const initialToken = location.state?.token || '';
-  const targetIdentifier = location.state?.identifier || '';
-
-  const [otp, setOtp] = useState(initialToken);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -23,10 +18,6 @@ export const ResetPasswordPage = () => {
     e.preventDefault();
     setError('');
 
-    if (!otp || !otp.trim()) {
-      setError('Vui lòng nhập mã OTP 6 số đã nhận từ Gmail');
-      return;
-    }
     if (!newPassword || newPassword.length < 6) {
       setError('Mật khẩu mới phải có tối thiểu 6 ký tự');
       return;
@@ -38,7 +29,7 @@ export const ResetPasswordPage = () => {
 
     setIsLoading(true);
     try {
-      await authService.resetPassword(newPassword, confirmPassword, otp.trim(), targetIdentifier);
+      await authService.resetPassword(newPassword, confirmPassword);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Không thể đặt lại mật khẩu.');
@@ -60,9 +51,7 @@ export const ResetPasswordPage = () => {
           Đặt lại mật khẩu mới
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          {targetIdentifier
-            ? `Nhập mã OTP 6 số đã gửi đến ${targetIdentifier}`
-            : 'Nhập mã OTP từ email và tạo mật khẩu mới an toàn'}
+          Tạo mật khẩu an toàn mới cho tài khoản của bạn
         </p>
       </div>
 
@@ -76,7 +65,7 @@ export const ResetPasswordPage = () => {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Mật khẩu đã được cập nhật!</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Bạn đã đổi mật khẩu thành công trên hệ thống PawCare Studio. Giờ đây bạn có thể đăng nhập bằng mật khẩu mới này.
+                  Bạn đã đổi mật khẩu thành công trong chế độ thử nghiệm. Giờ đây bạn có thể đăng nhập bằng mật khẩu mới này.
                 </p>
 
                 <div className="pt-3">
@@ -99,30 +88,6 @@ export const ResetPasswordPage = () => {
                     <span>{error}</span>
                   </div>
                 )}
-
-                {/* OTP Input */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Mã OTP khôi phục (6 số từ Gmail)
-                    <span className="text-rose-500 ml-1">*</span>
-                  </label>
-                  <div className="relative rounded-lg shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otp}
-                      onChange={(e) => {
-                        setOtp(e.target.value);
-                        if (error) setError('');
-                      }}
-                      placeholder="Nhập mã OTP 6 số"
-                      className="block w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 py-2 text-sm font-mono font-bold tracking-widest text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/20"
-                    />
-                  </div>
-                </div>
 
                 {/* New Password */}
                 <div>

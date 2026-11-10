@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { User } from './models/User.js';
+import { pathToFileURL } from 'node:url';
+import User from './models/User.js';
+import { connectDB } from './config/db.js';
 
 dotenv.config();
 
@@ -17,7 +19,7 @@ const createAdmin = async () => {
     throw new Error('ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
   }
 
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medcare_db');
+  await connectDB();
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new Error('Email đã tồn tại. Không tạo hoặc thay đổi tài khoản hiện có.');
@@ -33,13 +35,18 @@ const createAdmin = async () => {
   console.log(`[Admin] Đã tạo tài khoản quản trị: ${admin.email}`);
 };
 
-createAdmin()
-  .catch((error) => {
-    console.error(`[Admin] Không thể tạo tài khoản: ${error.message}`);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-  });
+const isDirectExecution = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectExecution) {
+  createAdmin()
+    .catch((error) => {
+      console.error(`[Admin] Không thể tạo tài khoản: ${error.message}`);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+    });
+}

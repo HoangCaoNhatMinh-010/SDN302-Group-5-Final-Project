@@ -11,15 +11,17 @@ export const ForbiddenPage = () => {
 
   const getDashboardPath = () => {
     switch (role) {
-      case ROLES.PATIENT:
-        return '/patient/dashboard';
+      case ROLES.PET_OWNER:
+        return '/pet-owner/dashboard';
       case ROLES.RECEPTIONIST:
         return '/receptionist/dashboard';
-      case ROLES.DOCTOR:
-        return '/doctor/dashboard';
+      case ROLES.GROOMER:
+        return '/groomer/dashboard';
+      case ROLES.VET_DOCTOR:
+        return '/vet-doctor/dashboard';
       case ROLES.ADMIN:
         return '/admin/dashboard';
-      case ROLES.CLINIC_MANAGER:
+      case ROLES.MANAGER:
         return '/manager/dashboard';
       default:
         return '/login';

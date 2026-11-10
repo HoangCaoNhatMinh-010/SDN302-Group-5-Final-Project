@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, Search, UserRound, UserRoundX } from 'lucide-react';
+import { Link2, Pencil, Plus, Search, UserRound, UserRoundX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumb, Button, Modal } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -8,10 +8,10 @@ import { adminService } from '../../services/adminService';
 import { ROLE_LABELS, ROLES } from '../../utils/constants';
 
 const ROLE_OPTIONS = [
-  ROLES.PATIENT,
-  ROLES.DOCTOR,
+  ROLES.GROOMER,
+  ROLES.VET_DOCTOR,
   ROLES.RECEPTIONIST,
-  ROLES.CLINIC_MANAGER,
+  ROLES.MANAGER,
   ROLES.ADMIN,
 ];
 
@@ -47,6 +47,12 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [linkingUser, setLinkingUser] = useState(null);
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [owners, setOwners] = useState([]);
+  const [ownersLoading, setOwnersLoading] = useState(false);
+  const [ownerSearchError, setOwnerSearchError] = useState('');
+  const [linking, setLinking] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setError('');
@@ -77,10 +83,28 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!linkingUser) return undefined;
+    let active = true;
+    adminService.getOwners({ search: ownerSearch })
+      .then((response) => {
+        if (active) setOwners(response.data || []);
+      })
+      .catch((loadError) => {
+        if (active) setOwnerSearchError(loadError.message || 'Không thể tìm hồ sơ chủ thú cưng.');
+      })
+      .finally(() => {
+        if (active) setOwnersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [linkingUser, ownerSearch]);
+
   const visibleUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
     return users.filter((user) => {
-      if (!isRbacPage && user.role === ROLES.PATIENT) return false;
+      if (!isRbacPage && user.role === ROLES.PET_OWNER) return false;
       return !query || [user.name, user.email, user.phone, user.role]
         .some((value) => String(value || '').toLowerCase().includes(query));
     });
@@ -156,13 +180,28 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
     }
   };
 
+  const linkOwner = async (owner) => {
+    if (!window.confirm(`Đã xác minh chủ tài khoản ${linkingUser.name} và hồ sơ ${owner.fullName} chưa?`)) return;
+    setLinking(true);
+    try {
+      const response = await adminService.linkUserOwner(linkingUser.id, owner.id);
+      setUsers((previous) => previous.map((user) => user.id === linkingUser.id ? response.data : user));
+      setLinkingUser(null);
+      toast.success('Đã liên kết tài khoản với hồ sơ chủ thú cưng.');
+    } catch (linkError) {
+      toast.error(linkError.message || 'Không thể liên kết hồ sơ.');
+    } finally {
+      setLinking(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Quản trị' }, { label: isRbacPage ? 'Phân quyền RBAC' : 'Bác sĩ & Nhân viên' }]} />
+      <Breadcrumb items={[{ label: 'Quản trị' }, { label: isRbacPage ? 'Phân quyền RBAC' : 'Nhân viên cửa hàng' }]} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {isRbacPage ? 'Phân quyền người dùng (RBAC)' : 'Quản lý Bác sĩ & Nhân viên'}
+            {isRbacPage ? 'Phân quyền người dùng (RBAC)' : 'Quản lý nhân viên cửa hàng'}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {isRbacPage
@@ -172,7 +211,7 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
         </div>
         {!isRbacPage && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate('/admin/doctors')}>Danh bạ bác sĩ</Button>
+            <Button variant="outline" onClick={() => navigate('/admin/groomers')}>Đội ngũ chăm sóc</Button>
             <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>Thêm nhân viên</Button>
           </div>
         )}
@@ -203,14 +242,15 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
               <th className="px-4 py-3">Vai trò</th>
               <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3">Ngày tạo</th>
+              {isRbacPage && <th className="px-4 py-3">Hồ sơ chủ nuôi</th>}
               {!isRbacPage && <th className="px-4 py-3 text-right">Thao tác</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={isRbacPage ? 4 : 5}>Đang tải...</td></tr>
+              <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={5}>Đang tải...</td></tr>
             ) : visibleUsers.length === 0 ? (
-              <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={isRbacPage ? 4 : 5}>Không có người dùng phù hợp.</td></tr>
+              <tr><td className="px-4 py-8 text-center text-slate-500" colSpan={5}>Không có người dùng phù hợp.</td></tr>
             ) : visibleUsers.map((user) => (
               <tr key={user.id}>
                 <td className="px-4 py-3">
@@ -238,6 +278,27 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
                 <td className="px-4 py-3 text-xs text-slate-500">
                   {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}
                 </td>
+                {isRbacPage && (
+                  <td className="px-4 py-3">
+                    {user.role === ROLES.PET_OWNER && user.ownerLinkStatus !== 'LINKED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setOwnerSearch('');
+                          setOwnerSearchError('');
+                          setOwnersLoading(true);
+                          setLinkingUser(user);
+                        }}
+                        leftIcon={<Link2 className="h-3.5 w-3.5" />}
+                      >
+                        Xác minh / liên kết
+                      </Button>
+                    ) : user.role === ROLES.PET_OWNER ? (
+                      <span className="text-xs text-emerald-700">Đã liên kết</span>
+                    ) : null}
+                  </td>
+                )}
                 {!isRbacPage && (
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
@@ -279,13 +340,13 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
         <form id="admin-user-form" onSubmit={saveUser} className="grid gap-4 sm:grid-cols-2">
           <Field label="Họ và tên" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           <Field label="Email" type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          <Field label="Số điện thoại" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          <Field label="Số điện thoại (10 số, bắt đầu bằng 0)" type="tel" required={!editingUser} pattern="0[0-9]{9}" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
           <Field label="Chức danh" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           {!editingUser && (
             <label className="block space-y-1.5">
               <span className="text-xs font-medium text-slate-700">Vai trò</span>
               <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                {ROLE_OPTIONS.filter((role) => role !== ROLES.PATIENT).map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
               </select>
             </label>
           )}
@@ -293,6 +354,50 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
             <Field label="Mật khẩu khởi tạo (ít nhất 8 ký tự)" type="password" minLength={8} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
           )}
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(linkingUser)}
+        onClose={() => {
+          if (!linking) setLinkingUser(null);
+        }}
+        title="Xác minh và liên kết hồ sơ chủ thú cưng"
+        description="Chỉ tiếp tục sau khi cửa hàng đã xác minh danh tính khách hàng. Liên kết này cho phép tài khoản truy cập thú cưng và lịch hẹn của hồ sơ."
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700">
+            Tài khoản: <span className="font-semibold">{linkingUser?.name}</span>
+            <span className="block text-xs text-slate-500">{linkingUser?.email} · {linkingUser?.phone}</span>
+          </p>
+          <input
+            value={ownerSearch}
+            onChange={(event) => {
+              setOwnerSearchError('');
+              setOwnersLoading(true);
+              setOwnerSearch(event.target.value);
+            }}
+            placeholder="Tìm theo tên, email hoặc số điện thoại chủ nuôi"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          {ownerSearchError && <p role="alert" className="text-sm text-rose-700">{ownerSearchError}</p>}
+          <div className="max-h-64 space-y-2 overflow-y-auto">
+            {ownersLoading ? (
+              <p className="py-4 text-center text-sm text-slate-500">Đang tìm hồ sơ...</p>
+            ) : owners.length ? owners.map((owner) => (
+              <div key={owner.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{owner.fullName}</p>
+                  <p className="text-xs text-slate-500">{owner.email || 'Không có email'} · {owner.phone}</p>
+                </div>
+                <Button size="sm" isLoading={linking} disabled={linking} onClick={() => linkOwner(owner)}>
+                  Chọn hồ sơ
+                </Button>
+              </div>
+            )) : (
+              <p className="py-4 text-center text-sm text-slate-500">Không tìm thấy hồ sơ đang hoạt động.</p>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );

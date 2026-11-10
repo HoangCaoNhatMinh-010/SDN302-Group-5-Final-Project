@@ -1,4 +1,16 @@
-import { Notification } from '../models/Notification.js';
+import mongoose from 'mongoose';
+import Notification from '../models/Notification.js';
+
+const ownerFilterFor = (req) => (req.user.ownerId ? { owner_id: req.user.ownerId } : null);
+const toNotificationDto = (notification) => ({
+  id: notification._id.toString(),
+  title: notification.type === 'CANCEL' ? 'Lịch chăm sóc đã hủy' : 'Cập nhật lịch chăm sóc thú cưng',
+  message: notification.content,
+  createdAt: notification.created_at || notification.createdAt,
+  scheduled_at: notification.scheduled_at,
+  type: notification.type,
+  read: Boolean(notification.read_at),
+});
 
 /**
  * @desc   Lấy danh sách thông báo của người dùng
@@ -7,14 +19,21 @@ import { Notification } from '../models/Notification.js';
  */
 export const getMyNotifications = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id;
-    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
-    const unreadCount = await Notification.countDocuments({ userId, read: false });
+    const ownerFilter = ownerFilterFor(req);
+    if (!ownerFilter) {
+      return res.status(200).json({ success: true, unreadCount: 0, data: [] });
+    }
+    const notifications = await Notification.collection
+      .find(ownerFilter)
+      .sort({ created_at: -1 })
+      .limit(100)
+      .toArray();
+    const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
     return res.status(200).json({
       success: true,
       unreadCount,
-      data: notifications,
+      data: notifications.map(toNotificationDto),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -28,20 +47,24 @@ export const getMyNotifications = async (req, res) => {
  */
 export const markAsRead = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id;
-    const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, userId },
-      { read: true },
-      { new: true }
+    const ownerFilter = ownerFilterFor(req);
+    if (!ownerFilter) {
+      return res.status(404).json({ success: false, message: 'Thông báo không tồn tại' });
+    }
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Thông báo không tồn tại' });
+    }
+    const result = await Notification.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(req.params.id), ...ownerFilter },
+      { $set: { read_at: new Date() } }
     );
-
-    if (!notification) {
+    if (!result.matchedCount) {
       return res.status(404).json({ success: false, message: 'Thông báo không tồn tại' });
     }
 
     return res.status(200).json({
       success: true,
-      data: notification,
+      message: 'Đã đánh dấu thông báo là đã đọc.',
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -55,31 +78,17 @@ export const markAsRead = async (req, res) => {
  */
 export const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id;
-    await Notification.updateMany({ userId, read: false }, { read: true });
+    const ownerFilter = ownerFilterFor(req);
+    if (ownerFilter) {
+      await Notification.collection.updateMany(
+        { ...ownerFilter, read_at: { $exists: false } },
+        { $set: { read_at: new Date() } }
+      );
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Đã đánh dấu tất cả thông báo là đã đọc',
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * @desc   Xóa tất cả thông báo của người dùng
- * @route  DELETE /api/v1/notifications
- * @access Private
- */
-export const clearAllNotifications = async (req, res) => {
-  try {
-    const userId = req.user.id || req.user._id;
-    await Notification.deleteMany({ userId });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Đã xóa tất cả thông báo',
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

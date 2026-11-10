@@ -5,11 +5,11 @@ import {
   createAppointment,
   cancelAppointment,
 } from '../controllers/appointmentController.js';
-import { protect } from '../middlewares/auth.js';
+import { protect, restrictTo } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, restrictTo('PET_OWNER'));
 
 router.get('/my-appointments', getMyAppointments);
 router.post('/', createAppointment);
@@ -17,4 +17,3 @@ router.get('/:id', getAppointmentById);
 router.put('/:id/cancel', cancelAppointment);
 
 export default router;
-

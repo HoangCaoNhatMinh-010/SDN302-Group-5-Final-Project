@@ -5,11 +5,11 @@ import { useToast } from '../../context/ToastContext';
 import { adminService } from '../../services/adminService';
 
 const SECTION_INFO = {
-  services: { title: 'Quản lý Dịch vụ y tế', description: 'Quản lý chuyên khoa, giá khám và phòng khám.' },
-  'slot-config': { title: 'Cấu hình Slot khám', description: 'Lưu cấu hình thời lượng khám, khung giờ và giới hạn đặt lịch.' },
-  policies: { title: 'Chính sách phòng khám', description: 'Quản lý các chính sách và quy định vận hành.' },
+  services: { title: 'Quản lý dịch vụ chăm sóc', description: 'Quản lý gói Spa & Grooming, giá và khu vực phục vụ.' },
+  'slot-config': { title: 'Cấu hình khung giờ dịch vụ', description: 'Lưu cấu hình thời lượng dịch vụ, khung giờ và giới hạn đặt lịch.' },
+  policies: { title: 'Chính sách cửa hàng', description: 'Quản lý các chính sách và quy định vận hành cửa hàng.' },
   consent: { title: 'Điều khoản & Consent', description: 'Quản lý nội dung chấp thuận và phiên bản điều khoản.' },
-  integrations: { title: 'Tích hợp hệ thống HIS/LIS', description: 'Quản lý metadata cấu hình tích hợp. Kết nối thật cần API và thông tin xác thực riêng.' },
+  integrations: { title: 'Tích hợp dịch vụ cửa hàng', description: 'Quản lý metadata cấu hình tích hợp. Kết nối thật cần API và thông tin xác thực riêng.' },
   reminders: { title: 'Nhắc hẹn tự động', description: 'Quản lý cấu hình mẫu và thời điểm gửi nhắc hẹn.' },
 };
 
@@ -70,7 +70,13 @@ export const AdminSettingsPage = ({ section }) => {
   const openEdit = (item) => {
     setEditingItem(item);
     const config = isServices
-      ? { price: item.price ?? 0, room: item.room || '', icon: item.icon || 'Activity' }
+      ? {
+        price: item.price ?? 0,
+        durationMinutes: item.durationMinutes ?? 60,
+        species: item.species || ['Chó', 'Mèo', 'Khác'],
+        room: item.room || '',
+        icon: item.icon || 'Activity',
+      }
       : item.config || {};
     setForm({
       name: item.name || '',
@@ -102,10 +108,19 @@ export const AdminSettingsPage = ({ section }) => {
         if (!Number.isFinite(price) || price < 0) {
           throw new Error('Giá dịch vụ phải là số không âm (price).');
         }
+        const durationMinutes = Number(config.durationMinutes);
+        if (!Number.isInteger(durationMinutes) || durationMinutes < 15) {
+          throw new Error('Thời lượng dịch vụ phải từ 15 phút trở lên (durationMinutes).');
+        }
+        if (!Array.isArray(config.species)) {
+          throw new Error('Loài áp dụng phải là danh sách (species).');
+        }
         payload = {
           name: form.name,
           description: form.description,
           price,
+          durationMinutes,
+          species: config.species,
           room: typeof config.room === 'string' ? config.room : '',
           icon: typeof config.icon === 'string' ? config.icon : 'Activity',
         };
@@ -154,7 +169,7 @@ export const AdminSettingsPage = ({ section }) => {
 
       {section === 'integrations' && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Không lưu mật khẩu, token hoặc khóa bí mật tại đây. Màn hình này lưu cấu hình mô tả; việc kết nối tới HIS/LIS cần triển khai endpoint, bảo mật secrets và kiểm thử với hệ thống đích.
+          Không lưu mật khẩu, token hoặc khóa bí mật tại đây. Màn hình này chỉ lưu cấu hình mô tả; cần triển khai API riêng để kết nối thực tế với các dịch vụ cửa hàng.
         </div>
       )}
       {error && (
@@ -172,7 +187,13 @@ export const AdminSettingsPage = ({ section }) => {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const config = isServices
-              ? { price: item.price, room: item.room, icon: item.icon }
+              ? {
+                price: item.price,
+                durationMinutes: item.durationMinutes,
+                species: item.species,
+                room: item.room,
+                icon: item.icon,
+              }
               : item.config;
             return (
               <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -201,7 +222,7 @@ export const AdminSettingsPage = ({ section }) => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingItem ? 'Cập nhật' : 'Tạo mới'}
-        description={isServices ? 'Nhập cấu hình dịch vụ dưới dạng JSON: {"price": 200000, "room": "Phòng 201", "icon": "Activity"}' : 'Cấu hình được xác thực và lưu trong cơ sở dữ liệu.'}
+        description={isServices ? 'Nhập cấu hình dịch vụ dạng JSON, gồm giá, thời lượng, loài áp dụng và khu vực phục vụ.' : 'Cấu hình được xác thực và lưu trong cơ sở dữ liệu.'}
         footer={
           <>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>

@@ -58,22 +58,23 @@ export const ReceptionistDashboard = () => {
         a.id === selectedApt.id ? { ...a, status: 'WAITING' } : a
       )
     );
-    toast.success(`Check-in thành công cho bệnh nhân ${selectedApt.patientName}`);
+    toast.success(`Đã check-in cho bé ${selectedApt.petName || 'thú cưng'} thành công`);
     setIsCheckinModalOpen(false);
     setSelectedApt(null);
   };
 
   const filteredAppointments = appointments.filter(
     (a) =>
-      a.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (a.ownerName || a.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (a.petName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.doctorName.toLowerCase().includes(searchQuery.toLowerCase())
+      (a.groomerName || a.doctorName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <Breadcrumb items={[{ label: 'Quản lý vận hành phòng khám' }]} />
+      <Breadcrumb items={[{ label: 'Vận hành cửa hàng' }]} />
 
       {/* 1. Welcome & Shift Info Card */}
       <div className="rounded-2xl bg-gradient-to-r from-teal-800 via-teal-700 to-sky-700 p-6 sm:p-8 text-white shadow-elevated">
@@ -84,10 +85,10 @@ export const ReceptionistDashboard = () => {
               <span>Ca trực: Sáng (07:30 - 12:00) • Quầy tiếp đón số 01</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Quản lý vận hành phòng khám
+              Quản lý lịch hẹn cửa hàng
             </h1>
             <p className="mt-1 text-sm text-teal-100 max-w-xl">
-              Chào ca trực, {currentUser?.name || 'Trần Thị Lan'}. Theo dõi luồng tiếp đón bệnh nhân, kiểm soát check-in và điều phối hàng chờ khám hôm nay.
+              Chào ca trực, {currentUser?.name || 'Trần Thị Lan'}. Tiếp đón khách hàng, check-in thú cưng và điều phối lịch chăm sóc trong ngày.
             </p>
           </div>
 
@@ -105,7 +106,7 @@ export const ReceptionistDashboard = () => {
               variant="outline"
               size="md"
               leftIcon={<CalendarPlus className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/receptionist/book-for-patient')}
+              onClick={() => navigate('/receptionist/book-for-pet-owner')}
               className="border-white/40 text-white hover:bg-white/10"
             >
               Đặt lịch hộ
@@ -144,11 +145,11 @@ export const ReceptionistDashboard = () => {
           iconColor="bg-sky-50 text-sky-600"
         />
         <StatCard
-          title="Đang trong phòng khám"
+          title="Đang được chăm sóc"
           value="4"
-          trend="4 / 6 phòng"
+          trend="4 / 6 khu vực"
           trendType="neutral"
-          trendLabel="Công suất phòng"
+          trendLabel="Công suất khu chăm sóc"
           icon={<Clock className="w-5 h-5 text-emerald-600" />}
           iconColor="bg-emerald-50 text-emerald-600"
         />
@@ -167,16 +168,16 @@ export const ReceptionistDashboard = () => {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Danh sách tiếp nhận & Hàng chờ khám hôm nay</CardTitle>
+            <CardTitle>Tiếp nhận & hàng chờ chăm sóc hôm nay</CardTitle>
             <CardDescription>
-              Kiểm tra thông tin thẻ, xác nhận check-in và chuyển trạng thái vào phòng khám
+              Xác nhận lịch, check-in thú cưng và điều phối bé đến khu dịch vụ
             </CardDescription>
           </div>
           <div className="w-full sm:w-72">
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Tìm theo tên BN, mã lịch, BS..."
+              placeholder="Tìm khách hàng, thú cưng, mã lịch, chuyên viên..."
               size="sm"
             />
           </div>
@@ -187,9 +188,9 @@ export const ReceptionistDashboard = () => {
             <TableHeader>
               <TableRow hover={false}>
                 <TableHead>Mã lịch</TableHead>
-                <TableHead>Bệnh nhân</TableHead>
+                <TableHead>Khách hàng & thú cưng</TableHead>
                 <TableHead>Khung giờ</TableHead>
-                <TableHead>Bác sĩ & Phòng</TableHead>
+                <TableHead>Chuyên viên & khu vực</TableHead>
                 <TableHead>Phân loại</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
@@ -202,8 +203,8 @@ export const ReceptionistDashboard = () => {
                     {apt.id}
                   </TableCell>
                   <TableCell>
-                    <div className="font-semibold text-slate-800 text-xs">{apt.patientName}</div>
-                    <div className="text-[11px] text-slate-400">BHXH: 79124890</div>
+                    <div className="font-semibold text-slate-800 text-xs">{apt.ownerName || apt.patientName}</div>
+                    <div className="text-[11px] text-slate-500">{apt.petName || 'Chưa chọn thú cưng'}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
@@ -212,7 +213,7 @@ export const ReceptionistDashboard = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-xs font-medium text-slate-800">{apt.doctorName}</div>
+                    <div className="text-xs font-medium text-slate-800">{apt.groomerName || apt.doctorName}</div>
                     <div className="text-[11px] text-slate-500">{apt.room} • {apt.specialty}</div>
                   </TableCell>
                   <TableCell>
@@ -237,15 +238,15 @@ export const ReceptionistDashboard = () => {
                       <Button
                         variant="light"
                         size="sm"
-                        onClick={() => toast.info(`Đã điều phối BN ${apt.patientName} vào ${apt.room}`)}
+                        onClick={() => toast.info(`Đã mời ${apt.petName || 'thú cưng'} vào ${apt.room}`)}
                       >
-                        Gọi vào khám
+                        Mời vào khu chăm sóc
                       </Button>
                     ) : (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.info(`Lịch hẹn ${apt.id}: ${apt.patientName}`)}
+                        onClick={() => toast.info(`Lịch hẹn ${apt.id}: ${apt.ownerName || apt.patientName}`)}
                       >
                         Chi tiết
                       </Button>
@@ -264,7 +265,7 @@ export const ReceptionistDashboard = () => {
         onClose={() => setIsCheckinModalOpen(false)}
         onConfirm={confirmCheckin}
         title="Xác nhận tiếp đón & Check-in"
-        message={`Bạn có chắc chắn muốn xác nhận Check-in cho bệnh nhân "${selectedApt?.patientName}" (Lịch ${selectedApt?.id}) tại ${selectedApt?.room}?`}
+        message={`Xác nhận check-in cho ${selectedApt?.petName || 'thú cưng'} của khách ${selectedApt?.ownerName || selectedApt?.patientName} (lịch ${selectedApt?.id}) tại ${selectedApt?.room}?`}
         confirmText="Xác nhận Check-in"
         cancelText="Đóng"
       />

@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 
 export const notificationService = {
-  getMyNotifications: async () => {
+  getNotifications: async () => {
     return await apiClient.get('/notifications');
   },
 
@@ -11,9 +11,5 @@ export const notificationService = {
 
   markAllAsRead: async () => {
     return await apiClient.put('/notifications/read-all');
-  },
-
-  clearAllNotifications: async () => {
-    return await apiClient.delete('/notifications');
   },
 };

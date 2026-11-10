@@ -1,47 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Menu,
   Bell,
   Search,
   LogOut,
   User,
-  Shield,
   ChevronDown,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { ROLES, ROLE_LABELS } from '../../utils/constants';
-import { MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { ROLE_LABELS } from '../../utils/constants';
 import { notificationService } from '../../services/notificationService';
 import { Avatar, Badge, Dropdown, DropdownItem, DropdownDivider } from '../common';
 
-export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
+export const Header = ({ onToggleSidebar }) => {
   const { currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const toast = useToast();
-  const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [notificationError, setNotificationError] = useState('');
 
   useEffect(() => {
-    const fetchNotifs = async () => {
-      try {
-        if (role === ROLES.PATIENT) {
-          const res = await notificationService.getMyNotifications();
-          if (res && res.data) {
-            setUnreadNotifications(res.data);
-          }
+    let active = true;
+    notificationService.getNotifications()
+      .then((response) => {
+        if (active) {
+          setNotifications(response.data || []);
+          setNotificationError('');
         }
-      } catch {
-        // fallback
-      }
+      })
+      .catch((error) => {
+        if (active) setNotificationError(error.message || 'Không thể tải thông báo.');
+      });
+    return () => {
+      active = false;
     };
-    fetchNotifs();
-  }, [location.pathname, role]);
+  }, [currentUser?.id]);
 
-  const unreadCount = unreadNotifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   const handleLogout = () => {
     logout();
@@ -52,25 +49,17 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
   const markAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-    } catch {
-      // ignore
-    }
-    setUnreadNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success('Đã đánh dấu đã đọc tất cả thông báo');
-  };
-
-  const handleSearchSubmit = (e) => {
-    if (e.key === 'Enter' && searchKeyword.trim()) {
-      if (role === ROLES.PATIENT) {
-        navigate(`/patient/doctors?search=${encodeURIComponent(searchKeyword.trim())}`);
-      }
+      setNotifications((previous) => previous.map((notification) => ({ ...notification, read: true })));
+      toast.success('Đã đánh dấu đã đọc tất cả thông báo');
+    } catch (error) {
+      toast.error(error.message || 'Không thể cập nhật trạng thái thông báo.');
     }
   };
 
   return (
-    <header className="flex-shrink-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
       {/* Left side: Hamburger button + Logo */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -83,16 +72,16 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
         {/* Logo and Brand */}
         <div
           onClick={() => navigate('/')}
-          className="flex items-center gap-2.5 cursor-pointer select-none whitespace-nowrap"
+          className="flex items-center gap-2.5 cursor-pointer select-none"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-primary-600 to-rose-500 text-white shadow-sm shadow-primary-500/20 text-lg flex-shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-primary-600 to-rose-500 text-white shadow-sm shadow-primary-500/20 text-lg">
             🐾
           </div>
-          <div className="hidden sm:flex items-center">
+          <div className="hidden sm:block">
             <span className="text-base font-bold tracking-tight text-slate-900">
               PawCare<span className="text-primary-600">Studio</span>
             </span>
-            <span className="ml-2 hidden rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 xl:inline-block border border-amber-200">
+            <span className="ml-2 hidden rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 md:inline-block border border-amber-200">
               Pet Spa & Grooming
             </span>
           </div>
@@ -100,30 +89,22 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
       </div>
 
       {/* Middle: Search input (hidden on mobile) */}
-      <div className="hidden md:flex items-center max-w-xs lg:max-w-sm w-full mx-4">
+      <div className="hidden md:flex items-center max-w-xs lg:max-w-md w-full mx-4">
         <div className="relative w-full">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            onKeyDown={handleSearchSubmit}
-            placeholder="Tìm kiếm chuyên viên grooming..."
+            placeholder="Tìm kiếm thú cưng, dịch vụ spa, chuyên viên grooming..."
             className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
         </div>
       </div>
 
-      {/* Right side: Role Badge + Notifications + User Avatar */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-        {role && (
-          <div className="hidden md:flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 whitespace-nowrap">
-            <Shield className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
-            <span className="font-semibold text-slate-800 max-w-[160px] truncate">
-              {ROLE_LABELS[role] || role}
-            </span>
-          </div>
-        )}
+      {/* Right side: Current role, notifications, and user menu */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className="hidden rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 sm:inline">
+          {ROLE_LABELS[role] || 'Người dùng'}
+        </span>
 
         {/* Notifications Dropdown */}
         <Dropdown
@@ -157,7 +138,9 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
             )}
           </div>
           <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-            {unreadNotifications.map((notif) => (
+            {notificationError ? (
+              <p role="alert" className="p-3 text-xs text-rose-700">{notificationError}</p>
+            ) : notifications.map((notif) => (
               <div
                 key={notif.id}
                 className={`p-3 text-xs transition-colors hover:bg-slate-50 ${
@@ -167,7 +150,7 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
                 <div className="flex items-start justify-between gap-1">
                   <h5 className="font-semibold text-slate-800">{notif.title}</h5>
                   <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                    {notif.time}
+                    {new Date(notif.createdAt || notif.scheduled_at).toLocaleString('vi-VN')}
                   </span>
                 </div>
                 <p className="mt-1 text-slate-600 line-clamp-2">{notif.message}</p>

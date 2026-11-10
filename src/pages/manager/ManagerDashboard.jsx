@@ -36,16 +36,16 @@ export const ManagerDashboard = () => {
   const navigate = useNavigate();
 
   const departmentPerformance = [
-    { name: 'Khoa Nội tổng quát', doctors: 8, visitsToday: 45, capacity: '94%', revenue: '18.2 tr' },
-    { name: 'Khoa Tai Mũi Họng', doctors: 4, visitsToday: 32, capacity: '88%', revenue: '12.8 tr' },
-    { name: 'Khoa Da liễu', doctors: 3, visitsToday: 28, capacity: '90%', revenue: '9.5 tr' },
-    { name: 'Khoa Nhi', doctors: 5, visitsToday: 37, capacity: '85%', revenue: '14.0 tr' },
+    { name: 'Tắm & Spa', staff: 4, bookingsToday: 18, capacity: '94%', revenue: '3.2 tr' },
+    { name: 'Grooming & Tạo kiểu', staff: 3, bookingsToday: 12, capacity: '88%', revenue: '3.8 tr' },
+    { name: 'Vệ sinh & Chăm sóc móng', staff: 2, bookingsToday: 9, capacity: '90%', revenue: '1.1 tr' },
+    { name: 'Pet Hotel & Daycare', staff: 3, bookingsToday: 7, capacity: '85%', revenue: '1.4 tr' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <Breadcrumb items={[{ label: 'Quản lý phòng khám' }]} />
+      <Breadcrumb items={[{ label: 'Quản lý cửa hàng thú cưng' }]} />
 
       {/* 1. Manager Welcome Card */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-teal-800 to-sky-900 p-6 sm:p-8 text-white shadow-elevated">
@@ -53,13 +53,13 @@ export const ManagerDashboard = () => {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm mb-3">
               <Award className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Báo cáo vận hành theo thời gian thực</span>
+              <span>Dữ liệu minh họa • Vận hành PawCare Studio</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Quản lý phòng khám
+              Quản lý cửa hàng
             </h1>
             <p className="mt-1 text-sm text-teal-100 max-w-xl">
-              Kính chào {currentUser?.name || 'Nguyễn Hoàng Nam'} (Giám đốc Vận hành). Theo dõi chỉ số lấp đầy slot, hiệu suất làm việc của bác sĩ và chất lượng dịch vụ của toàn phòng khám.
+              Xin chào {currentUser?.name || 'Nguyễn Hoàng Nam'}. Theo dõi lịch đặt, công suất khu chăm sóc, hiệu quả dịch vụ và trải nghiệm của khách hàng cùng các bé.
             </p>
           </div>
 
@@ -98,8 +98,8 @@ export const ManagerDashboard = () => {
       {/* 2. Manager Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Lượt khám hôm nay"
-          value="142"
+          title="Lịch chăm sóc hôm nay"
+          value="46"
           trend="+14%"
           trendType="up"
           trendLabel="So với hôm qua"
@@ -125,11 +125,11 @@ export const ManagerDashboard = () => {
           iconColor="bg-sky-50 text-sky-600"
         />
         <StatCard
-          title="Mức độ hài lòng BN"
+          title="Đánh giá khách hàng"
           value="98%"
           trend="+1.5%"
           trendType="up"
-          trendLabel="Khảo sát sau khám"
+          trendLabel="Đánh giá sau dịch vụ"
           icon={<Award className="w-5 h-5 text-amber-600" />}
           iconColor="bg-amber-50 text-amber-600"
         />
@@ -139,9 +139,9 @@ export const ManagerDashboard = () => {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Hiệu suất hoạt động theo chuyên khoa</CardTitle>
+            <CardTitle>Hiệu suất theo nhóm dịch vụ</CardTitle>
             <CardDescription>
-              Theo dõi số lượng bác sĩ trực, lượt tiếp nhận và công suất phòng khám
+              Theo dõi nhân viên, số lịch đặt, công suất khu vực và doanh thu dịch vụ
             </CardDescription>
           </div>
           <Button
@@ -157,9 +157,9 @@ export const ManagerDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow hover={false}>
-                <TableHead>Chuyên khoa</TableHead>
-                <TableHead>Bác sĩ đang trực</TableHead>
-                <TableHead>Lượt khám hôm nay</TableHead>
+                <TableHead>Nhóm dịch vụ</TableHead>
+                <TableHead>Nhân viên</TableHead>
+                <TableHead>Lịch hôm nay</TableHead>
                 <TableHead>Tỉ lệ lấp đầy slot</TableHead>
                 <TableHead className="text-right">Doanh thu tạm tính</TableHead>
               </TableRow>
@@ -171,10 +171,10 @@ export const ManagerDashboard = () => {
                     {dept.name}
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">
-                    {dept.doctors} bác sĩ
+                    {dept.staff} nhân viên
                   </TableCell>
                   <TableCell className="text-xs font-medium text-slate-900">
-                    {dept.visitsToday} lượt
+                    {dept.bookingsToday} lịch
                   </TableCell>
                   <TableCell>
                     <Badge variant="primary" size="sm">

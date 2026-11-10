@@ -10,11 +10,12 @@ export const useRole = () => {
   return {
     role,
     currentUser,
-    isPatient: role === ROLES.PATIENT,
+    isPetOwner: role === ROLES.PET_OWNER,
     isReceptionist: role === ROLES.RECEPTIONIST,
-    isDoctor: role === ROLES.DOCTOR,
+    isVetDoctor: role === ROLES.VET_DOCTOR,
+    isGroomer: role === ROLES.GROOMER,
     isAdmin: role === ROLES.ADMIN,
-    isManager: role === ROLES.CLINIC_MANAGER,
+    isManager: role === ROLES.MANAGER,
     hasRole: (targetRole) => role === targetRole,
     hasAnyRole: (roleList = []) => roleList.includes(role),
   };
