@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { Appointment } from '../models/Appointment.js';
-import { Doctor } from '../models/Doctor.js';
-import { FamilyMember } from '../models/FamilyMember.js';
-import { Notification } from '../models/Notification.js';
-import { Specialty } from '../models/Specialty.js';
-import { StaffShift } from '../models/StaffShift.js';
+import Appointment from '../models/Appointment.js';
+import Staff from '../models/Staff.js';
+import Pet from '../models/Pet.js';
+import Notification from '../models/Notification.js';
+import Service from '../models/Service.js';
+import StaffShift from '../models/StaffShift.js';
 import { resolveOwner } from '../utils/resolveOwner.js';
 
 const isValidBookingDate = (date) => {
@@ -29,16 +29,16 @@ const parseBookingTime = (time) => {
 
 const formatMinute = (minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 const dayEnd = (date) => new Date(date.getTime() + 24 * 60 * 60 * 1000);
-const activeStatuses = ['REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'IN_PROGRESS', 'PENDING', 'WAITING'];
+const activeStatuses = ['REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'PENDING', 'WAITING'];
 const populateAppointment = (query) => query
   .populate('staff_id', 'full_name role')
   .populate('pet_id', 'name species breed weight_kg special_notes')
-  .populate('service_id', 'name price duration_minutes category');
+  .populate('service_id', 'name price duration_minutes category room');
 
 export const getMyAppointments = async (req, res) => {
   try {
     const owner = await resolveOwner(req.user);
-    const groomingServiceIds = await Specialty.distinct('_id', { category: 'grooming' });
+    const groomingServiceIds = await Service.distinct('_id', { category: 'grooming' });
     const appointments = await populateAppointment(
       Appointment.find({ owner_id: owner._id, service_id: { $in: groomingServiceIds } })
         .sort({ appointment_date: -1, start_time: -1 })
@@ -55,7 +55,7 @@ export const getAppointmentById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'ID lịch hẹn không hợp lệ' });
     }
     const owner = await resolveOwner(req.user);
-    const groomingServiceIds = await Specialty.distinct('_id', { category: 'grooming' });
+    const groomingServiceIds = await Service.distinct('_id', { category: 'grooming' });
     const appointment = await populateAppointment(
       Appointment.findOne({
         _id: req.params.id,
@@ -72,8 +72,10 @@ export const getAppointmentById = async (req, res) => {
 
 export const createAppointment = async (req, res) => {
   try {
-    const { doctorId, date, time, serviceId, familyMemberId, careNotes, symptoms, notes = '' } = req.body;
-    if (![doctorId, familyMemberId, serviceId].every((id) => mongoose.Types.ObjectId.isValid(id))) {
+    const { groomerId, doctorId, date, time, serviceId, petId, familyMemberId, careNotes, symptoms, notes = '' } = req.body;
+    const selectedGroomerId = groomerId || doctorId;
+    const selectedPetId = petId || familyMemberId;
+    if (![selectedGroomerId, selectedPetId, serviceId].every((id) => mongoose.Types.ObjectId.isValid(id))) {
       return res.status(400).json({ success: false, message: 'Vui lòng chọn thú cưng, dịch vụ và chuyên viên hợp lệ.' });
     }
     const bookingDate = isValidBookingDate(date);
@@ -90,8 +92,8 @@ export const createAppointment = async (req, res) => {
 
     const owner = await resolveOwner(req.user);
     const [staff, service, pet] = await Promise.all([
-      Doctor.findOne({ _id: doctorId, role: 'GROOMER', is_active: true, deleted_at: null }),
-      Specialty.findOne({
+      Staff.findOne({ _id: selectedGroomerId, role: 'GROOMER', is_active: true, deleted_at: null }),
+      Service.findOne({
         _id: serviceId,
         category: 'grooming',
         is_active: true,
@@ -99,8 +101,8 @@ export const createAppointment = async (req, res) => {
         allow_online_booking: true,
         requires_vet_license: false,
       }),
-      FamilyMember.findOne({
-        _id: familyMemberId,
+      Pet.findOne({
+        _id: selectedPetId,
         owner_id: owner._id,
         is_active: true,
         deleted_at: null,
@@ -182,15 +184,21 @@ export const createAppointment = async (req, res) => {
       reservation_keys: reservationKeys,
       requested_at: new Date(),
       confirmed_at: depositRequired > 0 ? undefined : new Date(),
-      created_by: { owner_id: owner._id, source: 'online' },
+      created_by: 'CUSTOMER',
     });
     const savedAppointment = await populateAppointment(Appointment.findById(appointment._id));
 
     await Notification.create({
-      userId: req.user.id || req.user._id,
-      title: depositRequired > 0 ? 'Yêu cầu đặt lịch đã được ghi nhận 🐾' : 'Đặt lịch chăm sóc thành công 🐾',
-      message: `Lịch hẹn cho bé ${pet.name} với ${staff.full_name} lúc ${startTime} ngày ${date} đã được ghi nhận.`,
-      type: 'appointment',
+      appointment_id: appointment._id,
+      owner_id: owner._id,
+      pet_id: pet._id,
+      type: 'CONFIRM',
+      channel: 'PUSH',
+      recipient: owner.phone,
+      content: `Lịch hẹn cho bé ${pet.name} với ${staff.full_name} lúc ${startTime} ngày ${date} đã được ghi nhận.`,
+      status: 'SENT',
+      scheduled_at: new Date(),
+      sent_at: new Date(),
     });
 
     return res.status(201).json({
@@ -214,7 +222,7 @@ export const cancelAppointment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'ID lịch hẹn không hợp lệ' });
     }
     const owner = await resolveOwner(req.user);
-    const groomingServiceIds = await Specialty.distinct('_id', { category: 'grooming' });
+    const groomingServiceIds = await Service.distinct('_id', { category: 'grooming' });
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       owner_id: owner._id,
@@ -235,10 +243,16 @@ export const cancelAppointment = async (req, res) => {
     await appointment.save();
 
     await Notification.create({
-      userId: req.user.id || req.user._id,
-      title: 'Đã hủy lịch chăm sóc thú cưng',
-      message: `Lịch hẹn ngày ${appointment.appointment_date.toLocaleDateString('en-GB', { timeZone: 'UTC' })} đã được hủy.`,
-      type: 'appointment',
+      appointment_id: appointment._id,
+      owner_id: owner._id,
+      pet_id: appointment.pet_id,
+      type: 'CANCEL',
+      channel: 'PUSH',
+      recipient: owner.phone,
+      content: `Lịch hẹn ngày ${appointment.appointment_date.toLocaleDateString('en-GB', { timeZone: 'UTC' })} đã được hủy.`,
+      status: 'SENT',
+      scheduled_at: new Date(),
+      sent_at: new Date(),
     });
     return res.status(200).json({
       success: true,

@@ -1,4 +1,4 @@
-import { Owner } from '../models/Owner.js';
+import Owner from '../models/Owner.js';
 
 const identityConflict = () => {
   const error = new Error('Email và số điện thoại thuộc các hồ sơ chủ thú cưng khác nhau. Vui lòng liên hệ cửa hàng để xác minh.');

@@ -12,7 +12,7 @@ import {
   Star,
   ShieldCheck,
 } from 'lucide-react';
-import { doctorService } from '../../services/doctorService';
+import { groomerService } from '../../services/groomerService';
 import {
   Breadcrumb,
   Button,
@@ -34,7 +34,7 @@ export const PetServicesPage = () => {
     const fetchServices = async () => {
       try {
         setIsLoading(true);
-        const res = await doctorService.getAllSpecialties();
+        const res = await groomerService.getAllServices();
         setServices(res.data || []);
       } catch (err) {
         console.error('Lỗi tải danh mục dịch vụ:', err);
@@ -50,7 +50,7 @@ export const PetServicesPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Bảng giá & Dịch vụ Spa Thú Cưng' },
         ]}
       />
@@ -109,7 +109,7 @@ export const PetServicesPage = () => {
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() => navigate('/pet-owner/book-appointment')}
                   className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white text-xs font-semibold"
                 >
                   Đặt lịch gói này
@@ -122,4 +122,3 @@ export const PetServicesPage = () => {
     </div>
   );
 };
-

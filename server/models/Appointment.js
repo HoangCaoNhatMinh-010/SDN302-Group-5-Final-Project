@@ -3,88 +3,76 @@ import mongoose from 'mongoose';
 const appointmentSchema = new mongoose.Schema(
   {
     owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Owner', required: true },
-    pet_id: { type: mongoose.Schema.Types.ObjectId, ref: 'FamilyMember', required: true },
-    service_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Specialty', required: true },
-    staff_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
+    pet_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Pet', required: true },
+    staff_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', required: true },
+    service_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
+
+    pet_snapshot: {
+      name: String,
+      species: String,
+      breed: String,
+      allergies: [String],
+      special_notes: String,
+    },
+    owner_snapshot: { full_name: String, phone: String },
+    service_snapshot: {
+      name: String,
+      price: Number,
+      duration_minutes: Number,
+      requires_vet_license: Boolean,
+    },
+
     appointment_date: { type: Date, required: true },
     start_time: { type: String, required: true },
     end_time: { type: String, required: true },
+    slot_key: { type: String, required: true },
+
     status: {
       type: String,
       enum: [
-        'REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'COMPLETED', 'CANCELLED_EARLY',
-        'CANCELLED_LATE', 'REJECTED', 'NO_SHOW', 'PENDING', 'WAITING', 'IN_PROGRESS', 'CANCELLED',
+        'REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED',
+        'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED',
+        'CANCELLED_EARLY', 'CANCELLED_LATE', 'NO_SHOW',
+        'REJECTED', 'EXPIRED',
       ],
       default: 'REQUESTED',
     },
-    owner_snapshot: {
-      full_name: { type: String, default: '' },
-      phone: { type: String, default: '' },
+
+    deposit_required: { type: Number, default: 0 },
+    deposit_paid: { type: Number, default: 0 },
+    deposit_status: {
+      type: String,
+      enum: ['NONE', 'PENDING', 'PAID', 'REFUNDED', 'FORFEITED'],
+      default: 'NONE',
     },
-    pet_snapshot: {
-      name: { type: String, default: '' },
-      species: { type: String, default: '' },
-      breed: { type: String, default: '' },
-      allergies: { type: [String], default: [] },
-      special_notes: { type: String, default: '' },
-    },
-    service_snapshot: {
-      name: { type: String, default: '' },
-      price: { type: Number, min: 0 },
-      duration_minutes: { type: Number, min: 1 },
-      requires_vet_license: { type: Boolean, default: false },
-    },
-    customer_notes: { type: String, default: '' },
-    deposit_required: { type: Number, default: 0, min: 0 },
-    deposit_paid: { type: Number, default: 0, min: 0 },
-    deposit_status: { type: String, enum: ['PAID', 'FORFEITED', 'NONE', 'REFUNDED', 'PENDING'], default: 'NONE' },
-    slot_key: { type: String, default: '' },
-    reservation_keys: { type: [String], default: undefined },
-    created_by: { type: mongoose.Schema.Types.Mixed },
+
+    customer_notes: { type: String },
+    staff_notes: { type: String },
+    cancel_reason: { type: String },
+
     requested_at: { type: Date, default: Date.now },
-    confirmed_at: Date,
+    confirmed_at: { type: Date },
+    checked_in_at: { type: Date },
+    started_at: { type: Date },
+    completed_at: { type: Date },
+    cancelled_at: { type: Date },
+
+    created_by: {
+      type: String,
+      enum: ['CUSTOMER', 'RECEPTIONIST', 'SYSTEM'],
+      default: 'CUSTOMER',
+    },
+    confirmed_by: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' },
     schema_version: { type: Number, default: 1 },
   },
   { timestamps: true, collection: 'appointments' }
 );
 
-appointmentSchema.index({ owner_id: 1, createdAt: -1 });
-appointmentSchema.index({ staff_id: 1, appointment_date: 1, status: 1 });
-appointmentSchema.index({ reservation_keys: 1 }, { unique: true, sparse: true });
+appointmentSchema.index({ slot_key: 1 }, { unique: true });
+appointmentSchema.index({ appointment_date: 1, staff_id: 1, status: 1 });
+appointmentSchema.index({ owner_id: 1, appointment_date: -1 });
+appointmentSchema.index({ pet_id: 1, appointment_date: -1 });
+appointmentSchema.index({ status: 1, appointment_date: 1 });
+appointmentSchema.index({ staff_id: 1, appointment_date: 1, start_time: 1 });
 
-appointmentSchema.set('toJSON', {
-  transform(doc, ret) {
-    const id = ret._id.toString();
-    const staff = ret.staff_id;
-    ret.id = id;
-    ret.code = ret.code || id;
-    ret.patientId = ret.owner_id?.toString();
-    ret.patientName = ret.owner_snapshot?.full_name || '';
-    ret.petName = ret.pet_snapshot?.name || '';
-    ret.petBreed = ret.pet_snapshot?.breed || '';
-    ret.doctorId = (staff?._id || staff)?.toString();
-    ret.doctorName = staff?.full_name || '';
-    ret.specialty = ret.service_snapshot?.name || '';
-    ret.type = ret.service_snapshot?.name || '';
-    ret.date = ret.appointment_date?.toLocaleDateString('en-GB', { timeZone: 'UTC' }) || '';
-    ret.time = `${ret.start_time} - ${ret.end_time}`;
-    ret.notes = ret.customer_notes || '';
-    ret.careNotes = ret.customer_notes || '';
-    ret.serviceSnapshot = {
-      name: ret.service_snapshot?.name || '',
-      price: ret.service_snapshot?.price,
-      durationMinutes: ret.service_snapshot?.duration_minutes,
-    };
-    ret.petSnapshot = {
-      name: ret.pet_snapshot?.name || '',
-      species: ret.pet_snapshot?.species || '',
-      breed: ret.pet_snapshot?.breed || '',
-    };
-    ret.customerSnapshot = ret.owner_snapshot;
-    delete ret._id;
-    delete ret.__v;
-    return ret;
-  },
-});
-
-export const Appointment = mongoose.model('Appointment', appointmentSchema, 'appointments');
+export default mongoose.models.Appointment || mongoose.model('Appointment', appointmentSchema);

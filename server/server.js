@@ -4,14 +4,14 @@ import cors from 'cors';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
-import { Appointment } from './models/Appointment.js';
+import User, { USER_ROLES } from './models/User.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
-import familyMemberRoutes from './routes/familyMemberRoutes.js';
+import petRoutes from './routes/petRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
-import doctorRoutes from './routes/doctorRoutes.js';
+import groomerRoutes from './routes/groomerRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
@@ -48,9 +48,13 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/profile', profileRoutes);
-app.use('/api/v1/family-members', familyMemberRoutes);
+app.use('/api/v1/pet-owner/pets', petRoutes);
+app.use('/api/v1/pet-owner/family-members', petRoutes);
+app.use('/api/v1/pet-owner/appointments', appointmentRoutes);
+app.use('/api/v1/groomer', groomerRoutes);
+app.use('/api/v1/family-members', petRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
-app.use('/api/v1/doctors', doctorRoutes);
+app.use('/api/v1/doctors', groomerRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
@@ -63,7 +67,7 @@ app.use((req, res) => {
 });
 
 // Centralized Error Handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('[Internal Error]:', err.stack);
   res.status(err.statusCode || 500).json({
     success: false,
@@ -78,13 +82,19 @@ const startServer = async () => {
     throw new Error('JWT_SECRET must be configured with at least 32 characters before starting the API.');
   }
   await connectDB();
-  await Appointment.init();
+  const unsupportedRoles = await User.distinct('role', { role: { $nin: USER_ROLES } });
+  if (unsupportedRoles.length) {
+    throw new Error(
+      `Unsupported user role(s) found: ${unsupportedRoles.join(', ')}. Back up the database and manually update the affected users.role values to the six supported roles: ${USER_ROLES.join(', ')}.`
+    );
+  }
   app.listen(PORT, () => {
     console.log(`PawCare Studio API is running on http://localhost:${PORT}`);
   });
 };
 
-startServer().catch((error) => {
+startServer().catch(async (error) => {
   console.error(`[Server Startup Error]: ${error.message}`);
+  await mongoose.disconnect();
   process.exitCode = 1;
 });

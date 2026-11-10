@@ -115,7 +115,7 @@ export const PetAppointmentsPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Quản lý Lịch hẹn Chăm sóc Thú Cưng' },
         ]}
       />
@@ -135,7 +135,7 @@ export const PetAppointmentsPage = () => {
           variant="light"
           size="md"
           leftIcon={<CalendarPlus className="w-4 h-4 text-amber-700" />}
-          onClick={() => navigate('/patient/book-appointment')}
+          onClick={() => navigate('/pet-owner/book-appointment')}
           className="bg-white text-amber-800 hover:bg-amber-50 border-0 shadow-sm font-semibold flex-shrink-0"
         >
           Đặt lịch mới
@@ -156,7 +156,7 @@ export const PetAppointmentsPage = () => {
               title="Không có lịch hẹn nào"
               description="Bạn chưa có lịch hẹn chăm sóc thú cưng nào trong mục này."
               actionLabel="Đặt lịch chăm sóc ngay"
-              onAction={() => navigate('/patient/book-appointment')}
+              onAction={() => navigate('/pet-owner/book-appointment')}
             />
           ) : (
             <div className="space-y-4">
@@ -185,7 +185,7 @@ export const PetAppointmentsPage = () => {
 
                         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                           <span>
-                            Chuyên viên: <strong className="text-slate-800">{apt.doctorName}</strong>
+                            Chuyên viên: <strong className="text-slate-800">{apt.groomerName || apt.doctorName}</strong>
                           </span>
                           <span>• Mã phiếu: <strong className="text-amber-800">{apt.code || apt.id}</strong></span>
                           {apt.type && <span>• Gói: {apt.type}</span>}
@@ -226,7 +226,7 @@ export const PetAppointmentsPage = () => {
                         size="sm"
                         onClick={() =>
                           alert(
-                            `MÃ LỊCH HẸN: ${apt.code || apt.id}\nThú cưng: ${apt.petName || 'Bé cưng'}\nGói: ${apt.specialty}\nThời gian: ${apt.time} ngày ${apt.date}\nChuyên viên: ${apt.doctorName}\nĐịa chỉ: PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Q.1`
+                            `MÃ LỊCH HẸN: ${apt.code || apt.id}\nThú cưng: ${apt.petName || 'Bé cưng'}\nGói: ${apt.specialty}\nThời gian: ${apt.time} ngày ${apt.date}\nChuyên viên: ${apt.groomerName || apt.doctorName}\nĐịa chỉ: PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Q.1`
                           )
                         }
                         className="text-xs bg-amber-600 hover:bg-amber-700 border-amber-600 text-white font-medium"

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
-import { Owner } from '../models/Owner.js';
+import Owner from '../models/Owner.js';
+import User from '../models/User.js';
 import { findOwnerForIdentity } from '../utils/resolveOwner.js';
 
 // Helper tạo JWT Token
@@ -37,6 +37,9 @@ export const register = async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim().replace(/\s+/g, '');
+    if (!/^0\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({ success: false, message: 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.' });
+    }
 
     // Check duplicate email
     const existingEmail = await User.findOne({ email: cleanEmail });
@@ -78,7 +81,7 @@ export const register = async (req, res) => {
       email: cleanEmail,
       phone: cleanPhone,
       password,
-      role: 'PATIENT',
+      role: 'PET_OWNER',
       patientCode,
       ownerId: owner?._id,
       ownerLinkStatus,

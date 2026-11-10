@@ -4,11 +4,12 @@ import { Badge } from '../common/Badge';
 
 export const RoleBadge = ({ role, size = 'md' }) => {
   const roleVariants = {
-    [ROLES.PATIENT]: 'primary',
+    [ROLES.PET_OWNER]: 'primary',
     [ROLES.RECEPTIONIST]: 'secondary',
-    [ROLES.DOCTOR]: 'primary',
+    [ROLES.GROOMER]: 'primary',
+    [ROLES.VET_DOCTOR]: 'success',
     [ROLES.ADMIN]: 'danger',
-    [ROLES.CLINIC_MANAGER]: 'warning',
+    [ROLES.MANAGER]: 'warning',
   };
 
   return (

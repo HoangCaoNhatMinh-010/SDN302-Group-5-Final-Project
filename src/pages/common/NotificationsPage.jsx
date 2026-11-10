@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Bell, CheckCheck, Trash2, Calendar, Shield, Info, CheckCircle2 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CheckCheck, Calendar, Info, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { notificationService } from '../../services/notificationService';
 import {
   Breadcrumb,
   Button,
@@ -10,28 +10,65 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  Badge,
 } from '../../components/common';
 
 export const NotificationsPage = () => {
   const toast = useToast();
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success('Đã đánh dấu đã đọc tất cả thông báo');
-  };
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await notificationService.getNotifications();
+      setNotifications(response.data || []);
+      setError('');
+    } catch (loadError) {
+      setError(loadError.message || 'Không thể tải thông báo.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const clearAll = () => {
-    setNotifications([]);
-    toast.info('Đã xóa tất cả thông báo');
+  useEffect(() => {
+    let active = true;
+    notificationService.getNotifications()
+      .then((response) => {
+        if (active) {
+          setNotifications(response.data || []);
+          setError('');
+        }
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message || 'Không thể tải thông báo.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const markAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((previous) => previous.map((notification) => ({ ...notification, read: true })));
+      toast.success('Đã đánh dấu đã đọc tất cả thông báo');
+    } catch (markError) {
+      toast.error(markError.message || 'Không thể cập nhật trạng thái thông báo.');
+    }
   };
 
   const getIcon = (type) => {
     switch (type) {
       case 'appointment':
+      case 'CONFIRM':
+      case 'REMIND_24H':
+      case 'REMIND_2H':
         return <Calendar className="w-4 h-4 text-primary-600" />;
       case 'checkin':
+      case 'CHECKED_IN':
         return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       default:
         return <Info className="w-4 h-4 text-sky-600" />;
@@ -46,7 +83,7 @@ export const NotificationsPage = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Thông báo</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Xem tất cả thông báo nhắc lịch khám, cập nhật trạng thái và tin tức hệ thống
+            Xem thông tin xác nhận, nhắc lịch và cập nhật lịch chăm sóc thú cưng
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -58,14 +95,6 @@ export const NotificationsPage = () => {
           >
             Đánh dấu đã đọc
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAll}
-            leftIcon={<Trash2 className="w-4 h-4 text-slate-400" />}
-          >
-            Xóa tất cả
-          </Button>
         </div>
       </div>
 
@@ -73,11 +102,20 @@ export const NotificationsPage = () => {
         <CardHeader>
           <div>
             <CardTitle>Danh sách thông báo gần đây</CardTitle>
-            <CardDescription>Cập nhật tự động theo thời gian thực</CardDescription>
+            <CardDescription>Thông báo về các lịch chăm sóc thú cưng của bạn</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center text-xs text-slate-400">Đang tải thông báo...</div>
+          ) : error ? (
+            <div role="alert" className="p-6 text-center text-sm text-rose-700">
+              {error}
+              <button type="button" className="ml-2 underline" onClick={() => { setLoading(true); loadNotifications(); }}>
+                Thử lại
+              </button>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-12 text-center text-xs text-slate-400">
               Bạn không có thông báo nào.
             </div>
@@ -97,7 +135,7 @@ export const NotificationsPage = () => {
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-xs font-semibold text-slate-900">{item.title}</h4>
                       <span className="text-[11px] text-slate-400 whitespace-nowrap">
-                        {item.time}
+                        {new Date(item.createdAt || item.scheduled_at).toLocaleString('vi-VN')}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-600 leading-relaxed">

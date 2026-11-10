@@ -2,10 +2,10 @@ import { ROLES } from '../utils/constants';
 
 // Demo Users for Pet Care Store
 export const DEMO_USERS = {
-  [ROLES.PATIENT]: {
-    id: 'user_patient_1',
+  [ROLES.PET_OWNER]: {
+    id: 'user_pet_owner_1',
     name: 'Nguyễn Văn Minh',
-    role: ROLES.PATIENT,
+    role: ROLES.PET_OWNER,
     email: 'minh.nguyen@example.com',
     phone: '0901 234 567',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
@@ -25,10 +25,10 @@ export const DEMO_USERS = {
     title: 'Tiếp đón & Thu ngân Cửa hàng',
     department: 'Quầy Check-in Thú Cưng',
   },
-  [ROLES.DOCTOR]: {
-    id: 'user_doc_1',
+  [ROLES.GROOMER]: {
+    id: 'user_staff_1',
     name: 'Chuyên viên Mai Anh',
-    role: ROLES.DOCTOR,
+    role: ROLES.GROOMER,
     specialty: 'Cắt tỉa & Tạo kiểu Thời trang',
     email: 'maianh.groomer@pawcare.vn',
     phone: '0923 456 789',
@@ -44,31 +44,39 @@ export const DEMO_USERS = {
     email: 'admin@pawcare.vn',
     phone: '0934 567 890',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-    title: 'Quản trị viên hệ thống',
+    title: 'Quản trị viên hệ thống (Admin)',
     department: 'Bộ phận Công nghệ thông tin',
   },
-  [ROLES.CLINIC_MANAGER]: {
+  [ROLES.MANAGER]: {
     id: 'user_mgr_1',
     name: 'Nguyễn Hoàng Nam',
-    role: ROLES.CLINIC_MANAGER,
+    role: ROLES.MANAGER,
     email: 'nam.nguyen@pawcare.vn',
     phone: '0945 678 901',
     avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=150&q=80',
     title: 'Cửa hàng trưởng (Store Manager)',
     department: 'Ban Quản lý Cửa hàng PawCare',
   },
+  [ROLES.VET_DOCTOR]: {
+    id: 'user_vet_1',
+    name: 'Bác sĩ thú y Nguyễn An',
+    role: ROLES.VET_DOCTOR,
+    email: 'bacsi@pawcare.vn',
+    phone: '0956 789 012',
+    title: 'Bác sĩ chuyên khoa thú y',
+  },
 };
 
 // Sidebar Nav Items per Role
 export const NAV_ITEMS_BY_ROLE = {
-  [ROLES.PATIENT]: [
-    { label: 'Tổng quan', path: '/patient/dashboard', icon: 'LayoutDashboard' },
-    { label: 'Đặt lịch chăm sóc', path: '/patient/book-appointment', icon: 'CalendarPlus' },
-    { label: 'Thú cưng của tôi', path: '/patient/family', icon: 'Heart' },
-    { label: 'Dịch vụ Spa & Grooming', path: '/patient/specialties', icon: 'Sparkles' },
-    { label: 'Đội ngũ Spa & Grooming', path: '/patient/doctors', icon: 'Users' },
-    { label: 'Lịch trống tiệm', path: '/patient/available-slots', icon: 'Clock' },
-    { label: 'Lịch hẹn của bé', path: '/patient/appointments', icon: 'CalendarDays', badge: 3 },
+  [ROLES.PET_OWNER]: [
+    { label: 'Tổng quan', path: '/pet-owner/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Đặt lịch chăm sóc', path: '/pet-owner/book-appointment', icon: 'CalendarPlus' },
+    { label: 'Thú cưng của tôi', path: '/pet-owner/pets', icon: 'Heart' },
+    { label: 'Dịch vụ Spa & Grooming', path: '/pet-owner/services', icon: 'Sparkles' },
+    { label: 'Đội ngũ Spa & Grooming', path: '/pet-owner/team', icon: 'Users' },
+    { label: 'Lịch trống tiệm', path: '/pet-owner/available-slots', icon: 'Clock' },
+    { label: 'Lịch hẹn của bé', path: '/pet-owner/appointments', icon: 'CalendarDays', badge: 3 },
     { label: 'Hồ sơ chủ nuôi', path: '/profile', icon: 'UserCircle' },
   ],
   [ROLES.RECEPTIONIST]: [
@@ -76,27 +84,33 @@ export const NAV_ITEMS_BY_ROLE = {
     { label: 'Hàng chờ đón bé', path: '/receptionist/queue', icon: 'ListOrdered', badge: 5 },
     { label: 'Tiếp nhận & Check-in', path: '/receptionist/check-in', icon: 'UserCheck' },
     { label: 'Lịch tổng cửa hàng', path: '/receptionist/master-calendar', icon: 'Calendar' },
-    { label: 'Đặt lịch cho khách', path: '/receptionist/book-for-patient', icon: 'CalendarPlus' },
+    { label: 'Đặt lịch cho khách', path: '/receptionist/book-for-pet-owner', icon: 'CalendarPlus' },
     { label: 'Danh sách lịch hẹn', path: '/receptionist/appointments', icon: 'CalendarDays' },
     { label: 'Khách vắng mặt', path: '/receptionist/no-show', icon: 'UserX', badge: 1 },
   ],
-  [ROLES.DOCTOR]: [
-    { label: 'Tổng quan ca làm', path: '/doctor/dashboard', icon: 'LayoutDashboard' },
-    { label: 'Lịch Grooming của tôi', path: '/doctor/calendar', icon: 'Calendar' },
-    { label: 'Ca làm việc', path: '/doctor/shifts', icon: 'Clock' },
-    { label: 'Khóa khung giờ (Nghỉ)', path: '/doctor/block-time', icon: 'Ban' },
-    { label: 'Ghi chú chăm sóc bé', path: '/doctor/clinical-notes', icon: 'FileText' },
-    { label: 'Hồ sơ chuyên viên', path: '/doctor/profile', icon: 'UserCircle' },
+  [ROLES.GROOMER]: [
+    { label: 'Tổng quan ca làm', path: '/groomer/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Lịch Grooming của tôi', path: '/groomer/calendar', icon: 'Calendar' },
+    { label: 'Ca làm việc', path: '/groomer/shifts', icon: 'Clock' },
+    { label: 'Khóa khung giờ (Nghỉ)', path: '/groomer/block-time', icon: 'Ban' },
+    { label: 'Ghi chú chăm sóc bé', path: '/groomer/care-notes', icon: 'FileText' },
+    { label: 'Hồ sơ chuyên viên', path: '/groomer/profile', icon: 'UserCircle' },
+  ],
+  [ROLES.VET_DOCTOR]: [
+    { label: 'Tổng quan thú y', path: '/vet-doctor/dashboard', icon: 'Stethoscope' },
+    { label: 'Lịch khám', path: '/vet-doctor/appointments', icon: 'CalendarDays' },
+    { label: 'Hồ sơ y tế thú cưng', path: '/vet-doctor/medical-notes', icon: 'FileText' },
+    { label: 'Hồ sơ bác sĩ', path: '/profile', icon: 'UserCircle' },
   ],
   [ROLES.ADMIN]: [
     { label: 'Tổng quan', path: '/admin/dashboard', icon: 'LayoutDashboard' },
     { label: 'Người dùng hệ thống', path: '/admin/users', icon: 'Users' },
-    { label: 'Đội ngũ chăm sóc', path: '/admin/doctors', icon: 'Briefcase' },
+    { label: 'Đội ngũ chăm sóc', path: '/admin/groomers', icon: 'Briefcase' },
     { label: 'Báo cáo & Thống kê', path: '/admin/reports', icon: 'BarChart3' },
     { label: 'Nhật ký hoạt động', path: '/admin/audit-logs', icon: 'History' },
     { label: 'Cài đặt hệ thống', path: '/admin/settings', icon: 'Sliders' },
   ],
-  [ROLES.CLINIC_MANAGER]: [
+  [ROLES.MANAGER]: [
     { label: 'Tổng quan', path: '/manager/dashboard', icon: 'LayoutDashboard' },
     { label: 'Nhân viên cửa hàng', path: '/manager/staff', icon: 'Users' },
     { label: 'Bảng giá dịch vụ', path: '/manager/services', icon: 'Briefcase' },
@@ -111,9 +125,9 @@ export const NAV_ITEMS_BY_ROLE = {
 export const MOCK_APPOINTMENTS = [
   {
     id: 'PET-2026-101',
-    patientName: 'Nguyễn Văn Minh',
+    ownerName: 'Nguyễn Văn Minh',
     petName: 'Milo (Chó Poodle)',
-    doctorName: 'Chuyên viên Mai Anh',
+    groomerName: 'Chuyên viên Mai Anh',
     specialty: 'Cắt tỉa & Tạo kiểu Thời trang',
     room: 'Bàn Grooming 01',
     date: '10/11/2026',
@@ -123,9 +137,9 @@ export const MOCK_APPOINTMENTS = [
   },
   {
     id: 'PET-2026-102',
-    patientName: 'Nguyễn Văn Minh',
+    ownerName: 'Nguyễn Văn Minh',
     petName: 'Bông Bông (Mèo Anh lông ngắn)',
-    doctorName: 'Chuyên viên Ngọc Hân',
+    groomerName: 'Chuyên viên Ngọc Hân',
     specialty: 'Combo Tắm & Spa Toàn diện',
     room: 'Khu Tắm Thảo Dược',
     date: '12/11/2026',
@@ -135,9 +149,9 @@ export const MOCK_APPOINTMENTS = [
   },
   {
     id: 'PET-2026-103',
-    patientName: 'Nguyễn Văn Minh',
+    ownerName: 'Nguyễn Văn Minh',
     petName: 'LuLu (Corgi)',
-    doctorName: 'Chuyên viên Đức Hòa',
+    groomerName: 'Chuyên viên Đức Hòa',
     specialty: 'Vệ sinh & chăm sóc móng',
     room: 'Bàn Chăm Sóc 03',
     date: '18/11/2026',
@@ -176,10 +190,10 @@ export const MOCK_NOTIFICATIONS = [
 ];
 
 // Mock Pets for Pet Owner Accounts
-export const MOCK_FAMILY_MEMBERS = [
+export const MOCK_PETS = [
   {
     id: 'pet-1',
-    patientId: 'user_patient_1',
+    ownerId: 'user_pet_owner_1',
     name: 'Milo',
     relationship: 'Chó',
     petType: 'Chó',
@@ -194,7 +208,7 @@ export const MOCK_FAMILY_MEMBERS = [
   },
   {
     id: 'pet-2',
-    patientId: 'user_patient_1',
+    ownerId: 'user_pet_owner_1',
     name: 'Bông Bông',
     relationship: 'Mèo',
     petType: 'Mèo',
@@ -209,7 +223,7 @@ export const MOCK_FAMILY_MEMBERS = [
   },
   {
     id: 'pet-3',
-    patientId: 'user_patient_1',
+    ownerId: 'user_pet_owner_1',
     name: 'LuLu',
     relationship: 'Chó',
     petType: 'Chó',

@@ -64,7 +64,7 @@ export const authService = {
   },
 
   /**
-   * Register a new patient account
+   * Register a new pet-owner account
    */
   register: async ({ fullName, phone, email, password, confirmPassword, agreeTerms }) => {
     if (!agreeTerms) {

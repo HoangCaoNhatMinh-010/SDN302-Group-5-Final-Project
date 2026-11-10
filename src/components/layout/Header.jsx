@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -11,16 +11,34 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ROLE_LABELS } from '../../utils/constants';
-import { MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { notificationService } from '../../services/notificationService';
 import { Avatar, Badge, Dropdown, DropdownItem, DropdownDivider } from '../common';
 
 export const Header = ({ onToggleSidebar }) => {
   const { currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationError, setNotificationError] = useState('');
 
-  const unreadCount = unreadNotifications.filter((n) => !n.read).length;
+  useEffect(() => {
+    let active = true;
+    notificationService.getNotifications()
+      .then((response) => {
+        if (active) {
+          setNotifications(response.data || []);
+          setNotificationError('');
+        }
+      })
+      .catch((error) => {
+        if (active) setNotificationError(error.message || 'Không thể tải thông báo.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   const handleLogout = () => {
     logout();
@@ -28,9 +46,14 @@ export const Header = ({ onToggleSidebar }) => {
     navigate('/login');
   };
 
-  const markAllAsRead = () => {
-    setUnreadNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success('Đã đánh dấu đã đọc tất cả thông báo');
+  const markAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((previous) => previous.map((notification) => ({ ...notification, read: true })));
+      toast.success('Đã đánh dấu đã đọc tất cả thông báo');
+    } catch (error) {
+      toast.error(error.message || 'Không thể cập nhật trạng thái thông báo.');
+    }
   };
 
   return (
@@ -115,7 +138,9 @@ export const Header = ({ onToggleSidebar }) => {
             )}
           </div>
           <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-            {unreadNotifications.map((notif) => (
+            {notificationError ? (
+              <p role="alert" className="p-3 text-xs text-rose-700">{notificationError}</p>
+            ) : notifications.map((notif) => (
               <div
                 key={notif.id}
                 className={`p-3 text-xs transition-colors hover:bg-slate-50 ${
@@ -125,7 +150,7 @@ export const Header = ({ onToggleSidebar }) => {
                 <div className="flex items-start justify-between gap-1">
                   <h5 className="font-semibold text-slate-800">{notif.title}</h5>
                   <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                    {notif.time}
+                    {new Date(notif.createdAt || notif.scheduled_at).toLocaleString('vi-VN')}
                   </span>
                 </div>
                 <p className="mt-1 text-slate-600 line-clamp-2">{notif.message}</p>

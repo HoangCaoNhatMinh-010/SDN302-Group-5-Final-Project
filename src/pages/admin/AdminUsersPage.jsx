@@ -8,10 +8,10 @@ import { adminService } from '../../services/adminService';
 import { ROLE_LABELS, ROLES } from '../../utils/constants';
 
 const ROLE_OPTIONS = [
-  ROLES.PATIENT,
-  ROLES.DOCTOR,
+  ROLES.GROOMER,
+  ROLES.VET_DOCTOR,
   ROLES.RECEPTIONIST,
-  ROLES.CLINIC_MANAGER,
+  ROLES.MANAGER,
   ROLES.ADMIN,
 ];
 
@@ -104,7 +104,7 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
   const visibleUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
     return users.filter((user) => {
-      if (!isRbacPage && user.role === ROLES.PATIENT) return false;
+      if (!isRbacPage && user.role === ROLES.PET_OWNER) return false;
       return !query || [user.name, user.email, user.phone, user.role]
         .some((value) => String(value || '').toLowerCase().includes(query));
     });
@@ -211,7 +211,7 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
         </div>
         {!isRbacPage && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate('/admin/doctors')}>Đội ngũ chăm sóc</Button>
+            <Button variant="outline" onClick={() => navigate('/admin/groomers')}>Đội ngũ chăm sóc</Button>
             <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>Thêm nhân viên</Button>
           </div>
         )}
@@ -280,7 +280,7 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
                 </td>
                 {isRbacPage && (
                   <td className="px-4 py-3">
-                    {user.role === ROLES.PATIENT && user.ownerLinkStatus !== 'LINKED' ? (
+                    {user.role === ROLES.PET_OWNER && user.ownerLinkStatus !== 'LINKED' ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -294,7 +294,7 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
                       >
                         Xác minh / liên kết
                       </Button>
-                    ) : user.role === ROLES.PATIENT ? (
+                    ) : user.role === ROLES.PET_OWNER ? (
                       <span className="text-xs text-emerald-700">Đã liên kết</span>
                     ) : null}
                   </td>
@@ -340,13 +340,13 @@ export const AdminUsersPage = ({ mode = 'staff' }) => {
         <form id="admin-user-form" onSubmit={saveUser} className="grid gap-4 sm:grid-cols-2">
           <Field label="Họ và tên" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           <Field label="Email" type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          <Field label="Số điện thoại" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          <Field label="Số điện thoại (10 số, bắt đầu bằng 0)" type="tel" required={!editingUser} pattern="0[0-9]{9}" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
           <Field label="Chức danh" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           {!editingUser && (
             <label className="block space-y-1.5">
               <span className="text-xs font-medium text-slate-700">Vai trò</span>
               <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                {ROLE_OPTIONS.filter((role) => role !== ROLES.PATIENT).map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
               </select>
             </label>
           )}

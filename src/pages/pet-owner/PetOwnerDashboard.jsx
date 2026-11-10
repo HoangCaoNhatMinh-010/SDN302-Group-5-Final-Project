@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
-import { familyMemberService } from '../../services/familyMemberService';
+import { petService } from '../../services/petService';
 import {
   Breadcrumb,
   Button,
@@ -25,7 +25,7 @@ import {
   Tabs,
 } from '../../components/common';
 
-export const PatientDashboard = () => {
+export const PetOwnerDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -48,7 +48,7 @@ export const PatientDashboard = () => {
       try {
         const [aptRes, fmRes] = await Promise.all([
           appointmentService.getMyAppointments(),
-          familyMemberService.getFamilyMembers(),
+          petService.getMyPets(),
         ]);
         setAppointments(aptRes?.data || []);
         setPetsCount(fmRes?.data?.length || 0);
@@ -115,7 +115,7 @@ export const PatientDashboard = () => {
               variant="light"
               size="md"
               leftIcon={<CalendarPlus className="w-4 h-4 text-rose-700" />}
-              onClick={() => navigate('/patient/book-appointment')}
+              onClick={() => navigate('/pet-owner/book-appointment')}
               className="bg-white text-rose-700 hover:bg-rose-50 border-0 shadow-sm font-semibold"
             >
               Đặt lịch Spa & Grooming
@@ -124,7 +124,7 @@ export const PatientDashboard = () => {
               variant="outline"
               size="md"
               leftIcon={<Heart className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/patient/family')}
+              onClick={() => navigate('/pet-owner/pets')}
               className="border-white/50 text-white hover:bg-white/15"
             >
               Hồ sơ Thú cưng ({petsCount})
@@ -133,7 +133,7 @@ export const PatientDashboard = () => {
               variant="ghost"
               size="md"
               leftIcon={<Sparkles className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/patient/specialties')}
+              onClick={() => navigate('/pet-owner/services')}
               className="text-white hover:bg-white/15"
             >
               Bảng giá dịch vụ
@@ -166,7 +166,7 @@ export const PatientDashboard = () => {
           trendLabel="Chó, Mèo của bạn"
           icon={<Heart className="w-5 h-5 text-rose-600" />}
           iconColor="bg-rose-50 text-rose-600"
-          onClick={() => navigate('/patient/family')}
+          onClick={() => navigate('/pet-owner/pets')}
         />
         <StatCard
           title="Gói dịch vụ hot"
@@ -199,7 +199,7 @@ export const PatientDashboard = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/patient/book-appointment')}
+            onClick={() => navigate('/pet-owner/book-appointment')}
             leftIcon={<CalendarPlus className="w-3.5 h-3.5 text-amber-600" />}
             className="border-amber-300 text-amber-800 hover:bg-amber-50"
           >
@@ -222,7 +222,7 @@ export const PatientDashboard = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => navigate('/patient/book-appointment')}
+                      onClick={() => navigate('/pet-owner/book-appointment')}
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
                       Đặt lịch cho bé ngay
@@ -252,7 +252,7 @@ export const PatientDashboard = () => {
                         </div>
 
                         <p className="mt-1 text-xs text-slate-600 font-medium">
-                          Chuyên viên phụ trách: <span className="text-amber-800 font-semibold">{apt.doctorName}</span> {apt.type ? `• Gói: ${apt.type}` : ''}
+                          Chuyên viên phụ trách: <span className="text-amber-800 font-semibold">{apt.groomerName || apt.doctorName}</span> {apt.type ? `• Gói: ${apt.type}` : ''}
                         </p>
 
                         <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
@@ -285,7 +285,7 @@ export const PatientDashboard = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => navigate('/patient/appointments')}
+                        onClick={() => navigate('/pet-owner/appointments')}
                         className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                       >
                         Chi tiết lịch
@@ -306,7 +306,7 @@ export const PatientDashboard = () => {
                   <div key={apt.id || apt.code} className="py-3.5 flex items-center justify-between text-xs">
                     <div>
                       <p className="font-semibold text-slate-800">{apt.petName ? `Bé ${apt.petName}` : 'Thú cưng'} - {apt.specialty}</p>
-                      <p className="text-slate-500">{apt.doctorName} • {apt.date}</p>
+                      <p className="text-slate-500">{apt.groomerName || apt.doctorName} • {apt.date}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <StatusBadge status="COMPLETED" size="sm" />

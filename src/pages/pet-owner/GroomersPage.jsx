@@ -11,7 +11,7 @@ import {
   Mail,
   ShieldCheck,
 } from 'lucide-react';
-import { doctorService } from '../../services/doctorService';
+import { groomerService } from '../../services/groomerService';
 import {
   Breadcrumb,
   Button,
@@ -33,7 +33,7 @@ export const GroomersPage = () => {
     const fetchGroomers = async () => {
       try {
         setIsLoading(true);
-        const res = await doctorService.getAllDoctors();
+        const res = await groomerService.getAllGroomers();
         setGroomers(res.data || []);
       } catch (err) {
         console.error('Lỗi tải danh sách chuyên viên:', err);
@@ -49,7 +49,7 @@ export const GroomersPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Đội ngũ chuyên viên chăm sóc' },
         ]}
       />
@@ -112,7 +112,7 @@ export const GroomersPage = () => {
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() => navigate('/pet-owner/book-appointment')}
                   className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white text-xs font-semibold"
                 >
                   Đặt lịch với {groomer.name.split(' ').pop()}

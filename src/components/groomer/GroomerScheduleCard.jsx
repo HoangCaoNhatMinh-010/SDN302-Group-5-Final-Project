@@ -3,8 +3,8 @@ import { Calendar, Clock, MapPin, User } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../common/Card';
 import { Badge } from '../common/Badge';
 
-export const DoctorScheduleCard = ({ doctor }) => {
-  if (!doctor) return null;
+export const GroomerScheduleCard = ({ groomer }) => {
+  if (!groomer) return null;
 
   return (
     <Card hover>
@@ -29,7 +29,7 @@ export const DoctorScheduleCard = ({ doctor }) => {
         </div>
         <p className="text-slate-500 flex items-center gap-1.5">
           <MapPin className="w-3.5 h-3.5 text-slate-400" />
-          {doctor.room || 'Khu Spa & Grooming'}
+          {groomer.room || 'Khu Spa & Grooming'}
         </p>
       </CardContent>
     </Card>

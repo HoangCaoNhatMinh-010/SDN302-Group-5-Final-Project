@@ -65,10 +65,10 @@ export const ReceptionistDashboard = () => {
 
   const filteredAppointments = appointments.filter(
     (a) =>
-      a.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (a.ownerName || a.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (a.petName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.doctorName.toLowerCase().includes(searchQuery.toLowerCase())
+      (a.groomerName || a.doctorName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -106,7 +106,7 @@ export const ReceptionistDashboard = () => {
               variant="outline"
               size="md"
               leftIcon={<CalendarPlus className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/receptionist/book-for-patient')}
+              onClick={() => navigate('/receptionist/book-for-pet-owner')}
               className="border-white/40 text-white hover:bg-white/10"
             >
               Đặt lịch hộ
@@ -203,7 +203,7 @@ export const ReceptionistDashboard = () => {
                     {apt.id}
                   </TableCell>
                   <TableCell>
-                    <div className="font-semibold text-slate-800 text-xs">{apt.patientName}</div>
+                    <div className="font-semibold text-slate-800 text-xs">{apt.ownerName || apt.patientName}</div>
                     <div className="text-[11px] text-slate-500">{apt.petName || 'Chưa chọn thú cưng'}</div>
                   </TableCell>
                   <TableCell>
@@ -213,7 +213,7 @@ export const ReceptionistDashboard = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-xs font-medium text-slate-800">{apt.doctorName}</div>
+                    <div className="text-xs font-medium text-slate-800">{apt.groomerName || apt.doctorName}</div>
                     <div className="text-[11px] text-slate-500">{apt.room} • {apt.specialty}</div>
                   </TableCell>
                   <TableCell>
@@ -246,7 +246,7 @@ export const ReceptionistDashboard = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.info(`Lịch hẹn ${apt.id}: ${apt.patientName}`)}
+                        onClick={() => toast.info(`Lịch hẹn ${apt.id}: ${apt.ownerName || apt.patientName}`)}
                       >
                         Chi tiết
                       </Button>
@@ -265,7 +265,7 @@ export const ReceptionistDashboard = () => {
         onClose={() => setIsCheckinModalOpen(false)}
         onConfirm={confirmCheckin}
         title="Xác nhận tiếp đón & Check-in"
-        message={`Xác nhận check-in cho ${selectedApt?.petName || 'thú cưng'} của khách ${selectedApt?.patientName} (lịch ${selectedApt?.id}) tại ${selectedApt?.room}?`}
+        message={`Xác nhận check-in cho ${selectedApt?.petName || 'thú cưng'} của khách ${selectedApt?.ownerName || selectedApt?.patientName} (lịch ${selectedApt?.id}) tại ${selectedApt?.room}?`}
         confirmText="Xác nhận Check-in"
         cancelText="Đóng"
       />

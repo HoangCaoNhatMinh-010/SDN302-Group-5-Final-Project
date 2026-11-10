@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Stethoscope,
+  Scissors,
   Calendar,
   Clock,
   Ban,
   FileText,
-  User,
   CheckCircle,
   Play,
   CalendarClock,
-  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -32,7 +30,7 @@ import {
   TableCell,
 } from '../../components/common';
 
-export const DoctorDashboard = () => {
+export const GroomerDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -40,7 +38,7 @@ export const DoctorDashboard = () => {
   const careSchedule = [
     {
       id: 'APT-1003',
-      patientName: 'Lê Quốc Bảo',
+      ownerName: 'Lê Quốc Bảo',
       time: '09:30 - 10:00',
       petName: 'Milo (Poodle)',
       reason: 'Cắt tỉa form Teddy',
@@ -49,7 +47,7 @@ export const DoctorDashboard = () => {
     },
     {
       id: 'APT-1002',
-      patientName: 'Lê Thu Hương',
+      ownerName: 'Lê Thu Hương',
       petName: 'Bông Bông (Mèo Anh)',
       time: '10:00 - 10:30',
       reason: 'Tắm Spa & chải lông',
@@ -58,7 +56,7 @@ export const DoctorDashboard = () => {
     },
     {
       id: 'APT-1001',
-      patientName: 'Nguyễn Văn Minh',
+      ownerName: 'Nguyễn Văn Minh',
       petName: 'LuLu (Corgi)',
       time: '10:30 - 11:00',
       reason: 'Cắt móng & vệ sinh tai',
@@ -77,7 +75,7 @@ export const DoctorDashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm mb-3">
-              <Stethoscope className="w-3.5 h-3.5 text-sky-200" />
+              <Scissors className="w-3.5 h-3.5 text-sky-200" />
               <span>{currentUser?.specialty || 'Spa & Grooming'} • {currentUser?.room || 'Khu Grooming'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -102,7 +100,7 @@ export const DoctorDashboard = () => {
               variant="outline"
               size="md"
               leftIcon={<Ban className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/doctor/block-time')}
+              onClick={() => navigate('/groomer/block-time')}
               className="border-white/40 text-white hover:bg-white/10"
             >
               Giờ nghỉ
@@ -111,7 +109,7 @@ export const DoctorDashboard = () => {
               variant="ghost"
               size="md"
               leftIcon={<FileText className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/doctor/clinical-notes')}
+              onClick={() => navigate('/groomer/care-notes')}
               className="text-white hover:bg-white/10"
             >
               Ghi chú chăm sóc
@@ -120,7 +118,7 @@ export const DoctorDashboard = () => {
         </div>
       </div>
 
-      {/* 2. Doctor Stats */}
+      {/* 2. Groomer Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Lịch chăm sóc hôm nay"
@@ -172,7 +170,7 @@ export const DoctorDashboard = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/doctor/calendar')}
+            onClick={() => navigate('/groomer/calendar')}
             leftIcon={<Calendar className="w-3.5 h-3.5" />}
           >
             Lịch cá nhân
@@ -200,7 +198,7 @@ export const DoctorDashboard = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-semibold text-xs text-slate-900">{item.patientName}</div>
+                    <div className="font-semibold text-xs text-slate-900">{item.ownerName}</div>
                     <div className="text-[11px] text-slate-500">{item.petName}</div>
                     <div className="text-[11px] text-slate-400">{item.id}</div>
                   </TableCell>

@@ -1,23 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Heart,
   Plus,
   Edit2,
   Trash2,
-  Calendar,
-  Sparkles,
-  AlertCircle,
   Eye,
-  CheckCircle2,
-  Shield,
   Tag,
-  Scale,
   CalendarPlus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { familyMemberService } from '../../services/familyMemberService';
+import { petService } from '../../services/petService';
 import {
   Breadcrumb,
   Button,
@@ -25,10 +19,6 @@ import {
   Select,
   Textarea,
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
   Badge,
   Modal,
   Dialog,
@@ -45,14 +35,15 @@ const PET_TYPE_OPTIONS = [
 const GENDER_OPTIONS = [
   { value: 'Đực', label: 'Đực' },
   { value: 'Cái', label: 'Cái' },
+  { value: 'Không rõ', label: 'Không rõ' },
 ];
 
-export const FamilyMembersPage = () => {
+export const PetsPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [members, setMembers] = useState([]);
+  const [pets, setPets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal State
@@ -61,7 +52,7 @@ export const FamilyMembersPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Selected Pet for Edit / View / Delete
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedPet, setSelectedPet] = useState(null);
   const [formMode, setFormMode] = useState('add'); // 'add' | 'edit'
 
   // Form Fields
@@ -82,26 +73,25 @@ export const FamilyMembersPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load pets on mount
-  const loadMembers = async () => {
-    setIsLoading(true);
+  const loadPets = useCallback(async () => {
     try {
-      const res = await familyMemberService.getFamilyMembers();
-      setMembers(res.data || []);
-    } catch (err) {
+      const res = await petService.getMyPets();
+      setPets(res.data || []);
+    } catch {
       toast.error('Không thể tải danh sách thú cưng.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    loadMembers();
-  }, [currentUser]);
+    loadPets();
+  }, [currentUser, loadPets]);
 
   // Open Add Modal
   const handleOpenAddModal = () => {
     setFormMode('add');
-    setSelectedMember(null);
+    setSelectedPet(null);
     setFormData({
       name: '',
       relationship: 'Chó',
@@ -120,35 +110,35 @@ export const FamilyMembersPage = () => {
   };
 
   // Open Edit Modal
-  const handleOpenEditModal = (member) => {
+  const handleOpenEditModal = (pet) => {
     setFormMode('edit');
-    setSelectedMember(member);
+    setSelectedPet(pet);
     setFormData({
-      name: member.name || '',
-      relationship: member.relationship || member.petType || 'Chó',
-      petType: member.petType || member.relationship || 'Chó',
-      breed: member.breed || '',
-      weight: member.weight ? member.weight.toString() : '3.5',
-      dateOfBirth: member.dateOfBirth || '',
-      gender: member.gender || 'Đực',
-      phone: member.phone || currentUser?.phone || '',
-      address: member.address || '',
-      idCard: member.idCard || '',
-      note: member.note || '',
+      name: pet.name || '',
+      relationship: pet.relationship || pet.petType || 'Chó',
+      petType: pet.petType || pet.relationship || 'Chó',
+      breed: pet.breed || '',
+      weight: pet.weight ? pet.weight.toString() : '3.5',
+      dateOfBirth: pet.dateOfBirth || '',
+      gender: pet.gender || 'Đực',
+      phone: pet.phone || currentUser?.phone || '',
+      address: pet.address || '',
+      idCard: pet.idCard || '',
+      note: pet.note || '',
     });
     setFormErrors({});
     setIsFormModalOpen(true);
   };
 
   // Open View Details
-  const handleOpenDetailModal = (member) => {
-    setSelectedMember(member);
+  const handleOpenDetailModal = (pet) => {
+    setSelectedPet(pet);
     setIsDetailModalOpen(true);
   };
 
   // Open Delete Dialog
-  const handleOpenDeleteDialog = (member) => {
-    setSelectedMember(member);
+  const handleOpenDeleteDialog = (pet) => {
+    setSelectedPet(pet);
     setIsDeleteDialogOpen(true);
   };
 
@@ -190,15 +180,15 @@ export const FamilyMembersPage = () => {
       };
 
       if (formMode === 'add') {
-        const res = await familyMemberService.createFamilyMember(payload);
+        const res = await petService.createPet(payload);
         toast.success(res.message || 'Thêm hồ sơ bé cưng thành công!');
       } else {
-        const res = await familyMemberService.updateFamilyMember(selectedMember.id, payload);
+        const res = await petService.updatePet(selectedPet.id, payload);
         toast.success(res.message || 'Cập nhật hồ sơ bé cưng thành công!');
       }
 
       setIsFormModalOpen(false);
-      await loadMembers();
+      await loadPets();
     } catch (err) {
       toast.error(err.message || 'Có lỗi xảy ra khi lưu thông tin thú cưng.');
     } finally {
@@ -208,12 +198,12 @@ export const FamilyMembersPage = () => {
 
   // Confirm Delete
   const handleConfirmDelete = async () => {
-    if (!selectedMember) return;
+    if (!selectedPet) return;
     try {
-      const res = await familyMemberService.deleteFamilyMember(selectedMember.id);
+      const res = await petService.deletePet(selectedPet.id);
       toast.success(res.message || 'Đã xóa hồ sơ bé thú cưng thành công!');
       setIsDeleteDialogOpen(false);
-      await loadMembers();
+      await loadPets();
     } catch (err) {
       toast.error(err.message || 'Không thể xóa hồ sơ bé thú cưng.');
     }
@@ -224,7 +214,7 @@ export const FamilyMembersPage = () => {
       {/* Breadcrumb */}
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Hồ sơ Thú cưng của tôi' },
         ]}
       />
@@ -254,7 +244,7 @@ export const FamilyMembersPage = () => {
       {/* Pet Cards List */}
       {isLoading ? (
         <LoadingState text="Đang tải danh sách thú cưng..." />
-      ) : members.length === 0 ? (
+      ) : pets.length === 0 ? (
         <EmptyState
           icon={Heart}
           title="Bạn chưa đăng ký bé thú cưng nào"
@@ -264,7 +254,7 @@ export const FamilyMembersPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {members.map((pet) => {
+          {pets.map((pet) => {
             const isCat = pet.petType === 'Mèo' || pet.relationship === 'Mèo';
             return (
               <Card
@@ -365,7 +355,7 @@ export const FamilyMembersPage = () => {
                     variant="primary"
                     size="sm"
                     leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                    onClick={() => navigate('/patient/book-appointment')}
+                    onClick={() => navigate('/pet-owner/book-appointment')}
                     className="text-xs bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                   >
                     Đặt Spa ngay
@@ -381,7 +371,7 @@ export const FamilyMembersPage = () => {
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        title={formMode === 'add' ? 'Thêm Hồ sơ Thú cưng Mới 🐾' : `Cập nhật Hồ sơ bé "${selectedMember?.name}"`}
+        title={formMode === 'add' ? 'Thêm Hồ sơ Thú cưng Mới 🐾' : `Cập nhật Hồ sơ bé "${selectedPet?.name}"`}
         size="md"
       >
         <form onSubmit={handleSubmitForm} className="space-y-4">
@@ -488,22 +478,22 @@ export const FamilyMembersPage = () => {
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title={`Chi tiết Hồ sơ bé "${selectedMember?.name}"`}
+        title={`Chi tiết Hồ sơ bé "${selectedPet?.name}"`}
         size="md"
       >
-        {selectedMember && (
+        {selectedPet && (
           <div className="space-y-4 text-xs">
             <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-50/70 border border-amber-200">
               <div className="w-16 h-16 rounded-2xl bg-white border border-amber-200 flex items-center justify-center text-4xl shadow-xs">
-                {selectedMember.petType === 'Mèo' || selectedMember.relationship === 'Mèo' ? '🐱' : '🐶'}
+                {selectedPet.petType === 'Mèo' || selectedPet.relationship === 'Mèo' ? '🐱' : '🐶'}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{selectedMember.name}</h3>
-                <p className="text-slate-600 font-medium">{selectedMember.breed || 'Chưa rõ giống loài'}</p>
+                <h3 className="text-lg font-bold text-slate-900">{selectedPet.name}</h3>
+                <p className="text-slate-600 font-medium">{selectedPet.breed || 'Chưa rõ giống loài'}</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <Badge variant="warning" size="sm">{selectedMember.petType || selectedMember.relationship || 'Chó'}</Badge>
+                  <Badge variant="warning" size="sm">{selectedPet.petType || selectedPet.relationship || 'Chó'}</Badge>
                   <span className="text-slate-400">•</span>
-                  <span className="font-semibold text-slate-700">Cân nặng: {selectedMember.weight || '3.5'} kg</span>
+                  <span className="font-semibold text-slate-700">Cân nặng: {selectedPet.weight || '3.5'} kg</span>
                 </div>
               </div>
             </div>
@@ -511,26 +501,26 @@ export const FamilyMembersPage = () => {
             <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div>
                 <span className="text-slate-400 block text-[11px]">Giới tính</span>
-                <span className="font-semibold text-slate-800">{selectedMember.gender || 'Đực'}</span>
+                <span className="font-semibold text-slate-800">{selectedPet.gender || 'Đực'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Ngày sinh / Tuổi</span>
-                <span className="font-semibold text-slate-800">{selectedMember.dateOfBirth || '--'}</span>
+                <span className="font-semibold text-slate-800">{selectedPet.dateOfBirth || '--'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Mã thẻ vòng cổ</span>
-                <span className="font-semibold text-slate-800">{selectedMember.idCard || 'Chưa gắn'}</span>
+                <span className="font-semibold text-slate-800">{selectedPet.idCard || 'Chưa gắn'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">SĐT chủ đón</span>
-                <span className="font-semibold text-slate-800">{selectedMember.phone || currentUser?.phone || '--'}</span>
+                <span className="font-semibold text-slate-800">{selectedPet.phone || currentUser?.phone || '--'}</span>
               </div>
             </div>
 
-            {selectedMember.note && (
+            {selectedPet.note && (
               <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200 text-amber-900">
                 <span className="font-bold block mb-1">Ghi chú & Thói quen chăm sóc:</span>
-                <p className="leading-relaxed">{selectedMember.note}</p>
+                <p className="leading-relaxed">{selectedPet.note}</p>
               </div>
             )}
 
@@ -547,7 +537,7 @@ export const FamilyMembersPage = () => {
                 size="sm"
                 onClick={() => {
                   setIsDetailModalOpen(false);
-                  navigate('/patient/book-appointment');
+                  navigate('/pet-owner/book-appointment');
                 }}
                 className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
               >
@@ -563,7 +553,7 @@ export const FamilyMembersPage = () => {
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         title="Xóa hồ sơ thú cưng?"
-        description={`Bạn có chắc chắn muốn xóa hồ sơ bé "${selectedMember?.name}" không? Thao tác này sẽ không thể khôi phục.`}
+        description={`Bạn có chắc chắn muốn xóa hồ sơ bé "${selectedPet?.name}" không? Thao tác này sẽ không thể khôi phục.`}
         confirmLabel="Xác nhận xóa"
         confirmVariant="danger"
         onConfirm={handleConfirmDelete}

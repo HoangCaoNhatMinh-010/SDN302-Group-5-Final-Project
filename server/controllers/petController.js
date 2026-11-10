@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { FamilyMember } from '../models/FamilyMember.js';
+import Pet from '../models/Pet.js';
 import { resolveOwner } from '../utils/resolveOwner.js';
 
 const SPECIES = { 'Chó': 'dog', 'Mèo': 'cat', 'Khác': 'rabbit', dog: 'dog', cat: 'cat', rabbit: 'rabbit' };
@@ -37,51 +37,50 @@ const parsePetPayload = (body, existing = null) => {
     birth_date: birthDate,
     ...(body.gender !== undefined ? { gender: GENDERS[body.gender] || 'unknown' } : {}),
     ...(weight !== undefined ? { weight_kg: weight } : {}),
-    ...(body.idCard !== undefined ? { pet_tag: String(body.idCard).trim() } : {}),
     ...(body.note !== undefined ? { special_notes: String(body.note).trim() } : {}),
     ...(body.isNeutered !== undefined ? { is_neutered: Boolean(body.isNeutered) } : {}),
   };
 };
 
-export const getFamilyMembers = async (req, res) => {
+export const getPets = async (req, res) => {
   try {
     const owner = await resolveOwner(req.user);
-    const members = await FamilyMember.find({
+    const pets = await Pet.find({
       owner_id: owner._id,
       is_active: true,
       deleted_at: null,
     }).sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, count: members.length, data: members });
+    return res.status(200).json({ success: true, count: pets.length, data: pets });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
-export const getFamilyMemberById = async (req, res) => {
+export const getPetById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'ID thú cưng không hợp lệ' });
     }
     const owner = await resolveOwner(req.user);
-    const member = await FamilyMember.findOne({
+    const pet = await Pet.findOne({
       _id: req.params.id,
       owner_id: owner._id,
       is_active: true,
       deleted_at: null,
     });
-    if (!member) return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ thú cưng' });
-    return res.status(200).json({ success: true, data: member });
+    if (!pet) return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ thú cưng' });
+    return res.status(200).json({ success: true, data: pet });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
-export const createFamilyMember = async (req, res) => {
+export const createPet = async (req, res) => {
   try {
     const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
     if (!name) return res.status(400).json({ success: false, message: 'Vui lòng nhập tên thú cưng' });
     const owner = await resolveOwner(req.user);
-    const pet = await FamilyMember.create({
+    const pet = await Pet.create({
       owner_id: owner._id,
       name,
       ...parsePetPayload(req.body),
@@ -99,13 +98,13 @@ export const createFamilyMember = async (req, res) => {
   }
 };
 
-export const updateFamilyMember = async (req, res) => {
+export const updatePet = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'ID thú cưng không hợp lệ' });
     }
     const owner = await resolveOwner(req.user);
-    const pet = await FamilyMember.findOne({
+    const pet = await Pet.findOne({
       _id: req.params.id,
       owner_id: owner._id,
       is_active: true,
@@ -129,13 +128,13 @@ export const updateFamilyMember = async (req, res) => {
   }
 };
 
-export const deleteFamilyMember = async (req, res) => {
+export const deletePet = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'ID thú cưng không hợp lệ' });
     }
     const owner = await resolveOwner(req.user);
-    const pet = await FamilyMember.findOne({
+    const pet = await Pet.findOne({
       _id: req.params.id,
       owner_id: owner._id,
       is_active: true,

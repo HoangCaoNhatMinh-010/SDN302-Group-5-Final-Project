@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import { Doctor } from '../models/Doctor.js';
-import { Specialty } from '../models/Specialty.js';
-import { Appointment } from '../models/Appointment.js';
-import { StaffShift } from '../models/StaffShift.js';
+import Appointment from '../models/Appointment.js';
+import Staff from '../models/Staff.js';
+import Service from '../models/Service.js';
+import StaffShift from '../models/StaffShift.js';
 
 const parseTimeRange = (time) => {
   const match = typeof time === 'string'
@@ -33,44 +33,45 @@ const activeServiceFilter = {
   requires_vet_license: false,
 };
 
-export const getAllDoctors = async (req, res) => {
+export const getAllGroomers = async (req, res) => {
   try {
     const filter = { ...activeStaffFilter };
     if (typeof req.query.search === 'string' && req.query.search.trim()) {
       filter.full_name = new RegExp(req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     }
-    if (typeof req.query.specialty === 'string' && req.query.specialty.trim()) {
-      const service = await Specialty.findOne({
+    const serviceFilter = req.query.service || req.query.specialty;
+    if (typeof serviceFilter === 'string' && serviceFilter.trim()) {
+      const service = await Service.findOne({
         ...activeServiceFilter,
-        name: new RegExp(req.query.specialty.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+        name: new RegExp(serviceFilter.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
       });
       if (!service) return res.status(200).json({ success: true, count: 0, data: [] });
       filter.service_ids = service._id;
     }
-    const doctors = await Doctor.find(filter).populate({
+    const groomers = await Staff.find(filter).populate({
       path: 'service_ids',
       match: activeServiceFilter,
     }).sort({ full_name: 1 });
-    const visibleDoctors = doctors.filter((doctor) => doctor.service_ids.length > 0);
-    return res.status(200).json({ success: true, count: visibleDoctors.length, data: visibleDoctors });
+    const visibleGroomers = groomers.filter((groomer) => groomer.service_ids.length > 0);
+    return res.status(200).json({ success: true, count: visibleGroomers.length, data: visibleGroomers });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const getDoctorById = async (req, res) => {
+export const getGroomerById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'ID chuyên viên không hợp lệ' });
     }
-    const doctor = await Doctor.findOne({ _id: req.params.id, ...activeStaffFilter }).populate({
+    const groomer = await Staff.findOne({ _id: req.params.id, ...activeStaffFilter }).populate({
       path: 'service_ids',
       match: activeServiceFilter,
     });
-    if (!doctor || !doctor.service_ids.length) {
+    if (!groomer || !groomer.service_ids.length) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên viên grooming đang hoạt động' });
     }
-    return res.status(200).json({ success: true, data: doctor });
+    return res.status(200).json({ success: true, data: groomer });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -85,18 +86,18 @@ export const getAvailableSlots = async (req, res) => {
     if (!dateRange) {
       return res.status(400).json({ success: false, message: 'Vui lòng chọn ngày hợp lệ (DD/MM/YYYY)' });
     }
-    const doctor = await Doctor.findOne({ _id: req.params.id, ...activeStaffFilter });
-    if (!doctor) return res.status(404).json({ success: false, message: 'Chuyên viên grooming không tồn tại' });
+    const groomer = await Staff.findOne({ _id: req.params.id, ...activeStaffFilter });
+    if (!groomer) return res.status(404).json({ success: false, message: 'Chuyên viên grooming không tồn tại' });
 
     const [shifts, bookedAppointments] = await Promise.all([
       StaffShift.find({
-        staff_id: doctor._id,
+        staff_id: groomer._id,
         work_date: { $gte: dateRange.start, $lt: dateRange.end },
       }).sort({ start_time: 1 }),
       Appointment.find({
-        staff_id: doctor._id,
+        staff_id: groomer._id,
         appointment_date: { $gte: dateRange.start, $lt: dateRange.end },
-        status: { $in: ['REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'IN_PROGRESS', 'PENDING', 'WAITING'] },
+        status: { $in: ['REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'PENDING', 'WAITING'] },
       }).select('start_time end_time'),
     ]);
 
@@ -126,8 +127,10 @@ export const getAvailableSlots = async (req, res) => {
     return res.status(200).json({
       success: true,
       date: req.query.date,
-      doctorId: doctor._id,
-      doctorName: doctor.full_name,
+      groomerId: groomer._id,
+      groomerName: groomer.full_name,
+      doctorId: groomer._id,
+      doctorName: groomer.full_name,
       slots: shiftSlots,
     });
   } catch (error) {
@@ -135,10 +138,10 @@ export const getAvailableSlots = async (req, res) => {
   }
 };
 
-export const getAllSpecialties = async (req, res) => {
+export const getAllServices = async (req, res) => {
   try {
-    const specialties = await Specialty.find(activeServiceFilter).sort({ display_order: 1, name: 1 });
-    return res.status(200).json({ success: true, count: specialties.length, data: specialties });
+    const services = await Service.find(activeServiceFilter).sort({ display_order: 1, name: 1 });
+    return res.status(200).json({ success: true, count: services.length, data: services });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

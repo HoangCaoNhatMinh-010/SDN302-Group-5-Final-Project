@@ -1,4 +1,4 @@
-import { User } from '../models/User.js';
+import User from '../models/User.js';
 import { findOwnerForIdentity, resolveOwner } from '../utils/resolveOwner.js';
 
 const parseOwnerBirthDate = (value) => {
@@ -78,7 +78,7 @@ export const updateProfile = async (req, res) => {
     if (address !== undefined) user.address = address;
     if (avatar !== undefined) user.avatar = avatar;
 
-    if (user.role === 'PATIENT' && user.ownerLinkStatus !== 'PENDING') {
+    if (user.role === 'PET_OWNER' && user.ownerLinkStatus !== 'PENDING') {
       const matchingOwner = await findOwnerForIdentity({ email: cleanEmail, phone: cleanPhone });
       if (matchingOwner && user.ownerId && !matchingOwner._id.equals(user.ownerId)) {
         return res.status(409).json({

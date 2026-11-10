@@ -2,24 +2,24 @@ import express from 'express';
 import { protect, restrictTo } from '../middlewares/auth.js';
 import {
   createAdminSetting,
-  createAdminDoctor,
+  createAdminGroomer,
   createAdminSpecialty,
   createAdminUser,
   deleteAdminSetting,
-  deleteAdminDoctor,
+  deleteAdminGroomer,
   deleteAdminSpecialty,
   getAdminAuditLogs,
   getAdminReports,
   getAdminSummary,
   getRoleSummary,
   listAdminSettings,
-  listAdminDoctors,
+  listAdminGroomers,
   listAdminSpecialties,
   listAdminUsers,
   listAdminOwners,
   linkAdminUserOwner,
   updateAdminSetting,
-  updateAdminDoctor,
+  updateAdminGroomer,
   updateAdminSpecialty,
   updateAdminUser,
 } from '../controllers/adminController.js';
@@ -39,10 +39,14 @@ router.post('/users', createAdminUser);
 router.put('/users/:id', updateAdminUser);
 router.post('/users/:id/link-owner', linkAdminUserOwner);
 
-router.get('/doctors', listAdminDoctors);
-router.post('/doctors', createAdminDoctor);
-router.put('/doctors/:id', updateAdminDoctor);
-router.delete('/doctors/:id', deleteAdminDoctor);
+router.get('/groomers', listAdminGroomers);
+router.post('/groomers', createAdminGroomer);
+router.put('/groomers/:id', updateAdminGroomer);
+router.delete('/groomers/:id', deleteAdminGroomer);
+router.get('/doctors', listAdminGroomers);
+router.post('/doctors', createAdminGroomer);
+router.put('/doctors/:id', updateAdminGroomer);
+router.delete('/doctors/:id', deleteAdminGroomer);
 
 router.get('/specialties', listAdminSpecialties);
 router.post('/specialties', createAdminSpecialty);

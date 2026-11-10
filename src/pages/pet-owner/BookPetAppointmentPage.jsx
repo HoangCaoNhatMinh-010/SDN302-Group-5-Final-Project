@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { familyMemberService } from '../../services/familyMemberService';
-import { doctorService } from '../../services/doctorService';
+import { petService } from '../../services/petService';
+import { groomerService } from '../../services/groomerService';
 import { appointmentService } from '../../services/appointmentService';
 import {
   Breadcrumb,
@@ -70,9 +70,9 @@ export const BookPetAppointmentPage = () => {
       setIsLoading(true);
       try {
         const [petsRes, servicesRes, groomersRes] = await Promise.all([
-          familyMemberService.getFamilyMembers().catch(() => ({ data: [] })),
-          doctorService.getAllSpecialties().catch(() => ({ data: [] })),
-          doctorService.getAllDoctors().catch(() => ({ data: [] })),
+          petService.getMyPets().catch(() => ({ data: [] })),
+          groomerService.getAllServices().catch(() => ({ data: [] })),
+          groomerService.getAllGroomers().catch(() => ({ data: [] })),
         ]);
 
         const loadedPets = petsRes.data || [];
@@ -121,7 +121,7 @@ export const BookPetAppointmentPage = () => {
     const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
     const groomerId = selectedGroomer.id || selectedGroomer._id;
     setIsLoadingSlots(true);
-    doctorService.getAvailableSlots(groomerId, formattedDate, selectedService.durationMinutes)
+    groomerService.getAvailableSlots(groomerId, formattedDate, selectedService.durationMinutes)
       .then((response) => {
         if (!active) return;
         const times = (response.slots || response.data?.slots || [])
@@ -175,7 +175,7 @@ export const BookPetAppointmentPage = () => {
       const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
 
       const payload = {
-        doctorId: selectedGroomer.id || selectedGroomer._id,
+        groomerId: selectedGroomer.id || selectedGroomer._id,
         serviceId: selectedService.id || selectedService._id,
         date: formattedDate,
         time: selectedTime,
@@ -183,12 +183,12 @@ export const BookPetAppointmentPage = () => {
         careNotes: specialNotes ? `[${selectedPet.name} - ${selectedPet.breed || 'Pet'}]: ${specialNotes}` : `Chăm sóc bé ${selectedPet.name}`,
         notes: `Gói ${selectedService.name} - Bé ${selectedPet.name} (${selectedPet.petType || 'Chó'})`,
         isForFamilyMember: true,
-        familyMemberId: selectedPet.id || selectedPet._id,
+        petId: selectedPet.id || selectedPet._id,
       };
 
       const res = await appointmentService.createAppointment(payload);
       toast.success(res.message || 'Đặt lịch chăm sóc bé thú cưng thành công! 🐾');
-      navigate('/patient/dashboard');
+      navigate('/pet-owner/dashboard');
     } catch (err) {
       toast.error(err.message || 'Không thể hoàn tất đặt lịch. Vui lòng thử lại.');
     } finally {
@@ -204,7 +204,7 @@ export const BookPetAppointmentPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Đặt lịch chăm sóc Thú cưng' },
         ]}
       />
@@ -238,7 +238,7 @@ export const BookPetAppointmentPage = () => {
                 variant="outline"
                 size="sm"
                 leftIcon={<Plus className="w-3.5 h-3.5" />}
-                onClick={() => navigate('/patient/family')}
+                onClick={() => navigate('/pet-owner/pets')}
                 className="text-xs border-amber-300 text-amber-800 hover:bg-amber-50"
               >
                 Quản lý bé cưng
@@ -252,7 +252,7 @@ export const BookPetAppointmentPage = () => {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => navigate('/patient/family')}
+                  onClick={() => navigate('/pet-owner/pets')}
                   className="mt-2 text-xs bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   Thêm hồ sơ bé ngay
@@ -503,7 +503,7 @@ export const BookPetAppointmentPage = () => {
               type="button"
               variant="outline"
               size="md"
-              onClick={() => navigate('/patient/dashboard')}
+              onClick={() => navigate('/pet-owner/dashboard')}
             >
               Hủy
             </Button>

@@ -1,19 +1,21 @@
 // Role definitions
 export const ROLES = {
-  PATIENT: 'PATIENT',
+  PET_OWNER: 'PET_OWNER',
   RECEPTIONIST: 'RECEPTIONIST',
-  DOCTOR: 'DOCTOR',
+  GROOMER: 'GROOMER',
+  VET_DOCTOR: 'VET_DOCTOR',
+  MANAGER: 'MANAGER',
   ADMIN: 'ADMIN',
-  CLINIC_MANAGER: 'CLINIC_MANAGER',
 };
 
 // Vietnamese display names for Pet Care Store
 export const ROLE_LABELS = {
-  [ROLES.PATIENT]: 'Khách hàng (Chủ thú cưng)',
-  [ROLES.RECEPTIONIST]: 'Nhân viên tiếp đón',
-  [ROLES.DOCTOR]: 'Chuyên viên Spa & Grooming',
-  [ROLES.ADMIN]: 'Quản trị viên hệ thống',
-  [ROLES.CLINIC_MANAGER]: 'Chủ cửa hàng / Quản lý',
+  [ROLES.PET_OWNER]: 'Khách hàng (Chủ thú cưng)',
+  [ROLES.RECEPTIONIST]: 'Nhân viên tiếp đón (Lễ tân)',
+  [ROLES.GROOMER]: 'Chuyên viên Spa & Grooming',
+  [ROLES.VET_DOCTOR]: 'Bác sĩ chuyên khoa thú y',
+  [ROLES.MANAGER]: 'Chủ cửa hàng / Quản lý',
+  [ROLES.ADMIN]: 'Quản trị viên hệ thống (Admin)',
 };
 
 // Appointment & Queue Statuses for Pet Care

@@ -2,53 +2,21 @@ import mongoose from 'mongoose';
 
 const auditLogSchema = new mongoose.Schema(
   {
-    actorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    actorName: {
-      type: String,
-      required: true,
-    },
-    actorEmail: {
-      type: String,
-      required: true,
-    },
-    action: {
-      type: String,
-      required: true,
-    },
-    category: {
-      type: String,
-      required: true,
-    },
-    target: {
-      type: String,
-      default: '',
-    },
-    details: {
-      type: String,
-      default: '',
-    },
-    status: {
-      type: String,
-      enum: ['SUCCESS', 'FAILURE'],
-      default: 'SUCCESS',
-    },
+    actor_id: { type: mongoose.Schema.Types.ObjectId },
+    actor_type: { type: String, enum: ['OWNER', 'STAFF', 'SYSTEM'] },
+    action: { type: String, required: true },
+    entity_type: { type: String, required: true },
+    entity_id: { type: mongoose.Schema.Types.ObjectId },
+    changes: { type: mongoose.Schema.Types.Mixed },
+    ip_address: { type: String },
+    user_agent: { type: String },
+    created_at: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { collection: 'audit_logs' }
 );
 
-auditLogSchema.index({ createdAt: -1 });
-auditLogSchema.index({ category: 1, createdAt: -1 });
+auditLogSchema.index({ created_at: -1 }, { expireAfterSeconds: 365 * 24 * 3600 });
+auditLogSchema.index({ actor_id: 1, created_at: -1 });
+auditLogSchema.index({ entity_type: 1, entity_id: 1 });
 
-auditLogSchema.set('toJSON', {
-  transform(doc, ret) {
-    ret.id = ret._id.toString();
-    delete ret._id;
-    delete ret.__v;
-    return ret;
-  },
-});
-
-export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+export default mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);

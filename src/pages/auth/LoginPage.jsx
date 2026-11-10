@@ -28,18 +28,20 @@ export const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const getDashboardPath = (targetRole) => {
     switch (targetRole) {
-      case ROLES.PATIENT:
-        return '/patient/dashboard';
+      case ROLES.PET_OWNER:
+        return '/pet-owner/dashboard';
       case ROLES.RECEPTIONIST:
         return '/receptionist/dashboard';
-      case ROLES.DOCTOR:
-        return '/doctor/dashboard';
+      case ROLES.GROOMER:
+        return '/groomer/dashboard';
+      case ROLES.VET_DOCTOR:
+        return '/vet-doctor/dashboard';
       case ROLES.ADMIN:
         return '/admin/dashboard';
-      case ROLES.CLINIC_MANAGER:
+      case ROLES.MANAGER:
         return '/manager/dashboard';
       default:
-        return '/patient/dashboard';
+        return '/pet-owner/dashboard';
     }
   };
 
@@ -50,10 +52,10 @@ export const LoginPage = () => {
 
     try {
       const result = await authService.login(identifier, password);
-      login(result.user);
-      toast.success(`Chào mừng ${result.user.name} (${ROLE_LABELS[result.user.role]})!`);
+      const user = login(result.user);
+      toast.success(`Chào mừng ${user.name} (${ROLE_LABELS[user.role] || user.role})!`);
 
-      const destination = location.state?.from?.pathname || getDashboardPath(result.user.role);
+      const destination = location.state?.from?.pathname || getDashboardPath(user.role);
       navigate(destination, { replace: true });
     } catch (err) {
       setErrorMessage(err.message || 'Đăng nhập không thành công. Vui lòng thử lại.');

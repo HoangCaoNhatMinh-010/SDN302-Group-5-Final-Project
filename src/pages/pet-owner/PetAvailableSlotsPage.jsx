@@ -8,7 +8,7 @@ import {
   User,
   Sparkles,
 } from 'lucide-react';
-import { doctorService } from '../../services/doctorService';
+import { groomerService } from '../../services/groomerService';
 import {
   Breadcrumb,
   Button,
@@ -36,7 +36,7 @@ export const PetAvailableSlotsPage = () => {
   useEffect(() => {
     const fetchGroomers = async () => {
       try {
-        const res = await doctorService.getAllDoctors();
+        const res = await groomerService.getAllGroomers();
         const list = res.data || [];
         setGroomers(list);
         if (list.length > 0) {
@@ -59,7 +59,7 @@ export const PetAvailableSlotsPage = () => {
       try {
         const dateParts = selectedDate.split('-');
         const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-        const res = await doctorService.getAvailableSlots(selectedGroomerId, formattedDate);
+        const res = await groomerService.getAvailableSlots(selectedGroomerId, formattedDate);
         setSlotsData(res);
       } catch (err) {
         console.error('Lỗi tải slot:', err);
@@ -73,7 +73,7 @@ export const PetAvailableSlotsPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <Breadcrumb
         items={[
-          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Trang chủ', path: '/pet-owner/dashboard' },
           { label: 'Tra cứu Lịch trống của Tiệm' },
         ]}
       />
@@ -180,7 +180,7 @@ export const PetAvailableSlotsPage = () => {
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() => navigate('/pet-owner/book-appointment')}
                   className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs"
                 >
                   Đặt lịch theo khung giờ
