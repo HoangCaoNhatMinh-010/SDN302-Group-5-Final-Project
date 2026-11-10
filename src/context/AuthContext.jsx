@@ -1,168 +1,119 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ROLES } from '../utils/constants';
-import { DEMO_USERS } from '../data/mockData';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient } from '../services/apiClient';
 
 const AuthContext = createContext(null);
-
-const STORAGE_KEY = 'medcare_auth_state';
 const TOKEN_KEY = 'medcare_auth_token';
+const LEGACY_STORAGE_KEY = 'medcare_auth_state';
+const hasStoredToken = () => {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    return Boolean(token && token !== 'undefined' && token !== 'null');
+  } catch {
+    return false;
+  }
+};
+
+const unauthenticatedState = {
+  isAuthenticated: false,
+  role: null,
+  currentUser: null,
+};
 
 export const AuthProvider = ({ children }) => {
-  // Load persisted state or default to PATIENT demo account
-  const [authState, setAuthState] = useState(() => {
+  const [authState, setAuthState] = useState(unauthenticatedState);
+  const [isLoading, setIsLoading] = useState(hasStoredToken);
+
+  useEffect(() => {
+    let active = true;
+    let token;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.role && (parsed.currentUser || DEMO_USERS[parsed.role])) {
-          return {
-            isAuthenticated: parsed.isAuthenticated ?? true,
-            role: parsed.role,
-            currentUser: parsed.currentUser || DEMO_USERS[parsed.role],
-          };
-        }
-      }
-    } catch {
-      // fallback
+      token = localStorage.getItem(TOKEN_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch (error) {
+      console.error('Không thể đọc phiên đăng nhập đã lưu:', error);
+      return () => {
+        active = false;
+      };
     }
 
-    return {
-      isAuthenticated: true,
-      role: ROLES.PATIENT,
-      currentUser: DEMO_USERS[ROLES.PATIENT],
-    };
-  });
-
-  // Tự động đảm bảo luôn có Token hợp lệ cho người dùng hiện tại
-  useEffect(() => {
-    const ensureToken = async () => {
+    if (!token || token === 'undefined' || token === 'null') {
       try {
-        const currentToken = localStorage.getItem(TOKEN_KEY);
-        // Nếu chưa có token hoặc token không hợp lệ
-        if (!currentToken || currentToken === 'undefined' || currentToken === 'null') {
-          const res = await apiClient.post('/auth/login', {
-            identifier: authState.currentUser?.email || 'minh.nguyen@example.com',
-            password: 'password123',
-          }).catch(() => null);
-
-          if (res && res.token) {
-            localStorage.setItem(TOKEN_KEY, res.token);
-            if (res.user) {
-              setAuthState((prev) => ({
-                ...prev,
-                currentUser: { ...prev.currentUser, ...res.user, id: res.user.id || res.user._id },
-              }));
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Lỗi đồng bộ token ban đầu:', err.message);
+        localStorage.removeItem(TOKEN_KEY);
+      } catch (error) {
+        console.error('Không thể xóa token đăng nhập không hợp lệ:', error);
       }
+      return () => {
+        active = false;
+      };
+    }
+
+    apiClient.get('/auth/me')
+      .then((response) => {
+        if (!active || !response.data) return;
+        setAuthState({
+          isAuthenticated: true,
+          role: response.data.role,
+          currentUser: response.data,
+        });
+      })
+      .catch((error) => {
+        console.error('Phiên đăng nhập không hợp lệ hoặc API không truy cập được:', error);
+        localStorage.removeItem(TOKEN_KEY);
+        if (active) setAuthState(unauthenticatedState);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
     };
+  }, []);
 
-    ensureToken();
-  }, [authState.role]);
-
-  // Sync to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
-    } catch (e) {
-      console.error('Failed to save auth state to localStorage', e);
+  const login = (user) => {
+    if (!user?.id || !user?.role) {
+      throw new Error('Phản hồi đăng nhập thiếu thông tin tài khoản hợp lệ.');
     }
-  }, [authState]);
-
-  /**
-   * Set user role directly (e.g. for demo switcher or testing)
-   */
-  const setRole = (newRole) => {
-    if (!ROLES[newRole]) return;
-    const user = DEMO_USERS[newRole];
     setAuthState({
       isAuthenticated: true,
-      role: newRole,
-      currentUser: user,
-    });
-  };
-
-  /**
-   * Login with specified role or user object
-   */
-  const login = (roleOrUser = ROLES.PATIENT) => {
-    let user;
-    let targetRole;
-
-    if (typeof roleOrUser === 'string') {
-      targetRole = roleOrUser;
-      user = DEMO_USERS[targetRole] || DEMO_USERS[ROLES.PATIENT];
-    } else if (typeof roleOrUser === 'object' && roleOrUser !== null) {
-      user = roleOrUser;
-      targetRole = roleOrUser.role || ROLES.PATIENT;
-    } else {
-      targetRole = ROLES.PATIENT;
-      user = DEMO_USERS[ROLES.PATIENT];
-    }
-
-    setAuthState({
-      isAuthenticated: true,
-      role: targetRole,
+      role: user.role,
       currentUser: user,
     });
     return user;
   };
 
-  /**
-   * Update current user profile fields in shared state & storage
-   */
   const updateCurrentUser = (updatedFields) => {
-    setAuthState((prev) => {
-      const updatedUser = {
-        ...prev.currentUser,
-        ...updatedFields,
-      };
-      return {
-        ...prev,
-        currentUser: updatedUser,
-      };
-    });
+    setAuthState((previous) => ({
+      ...previous,
+      currentUser: previous.currentUser
+        ? { ...previous.currentUser, ...updatedFields }
+        : null,
+    }));
   };
 
-  /**
-   * Logout user
-   */
   const logout = () => {
     try {
       localStorage.removeItem(TOKEN_KEY);
-    } catch (e) {
-      // ignore
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch (error) {
+      console.error('Không thể xóa phiên đăng nhập đã lưu:', error);
     }
-    setAuthState({
-      isAuthenticated: false,
-      role: null,
-      currentUser: null,
-    });
+    setAuthState(unauthenticatedState);
   };
 
-  /**
-   * Quick Switch to Demo Account
-   */
-  const switchDemoAccount = (targetRole) => {
-    setRole(targetRole);
-  };
-
-  const value = {
-    isAuthenticated: authState.isAuthenticated,
-    role: authState.role,
-    currentUser: authState.currentUser,
-    login,
-    logout,
-    setRole,
-    updateCurrentUser,
-    switchDemoAccount,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        ...authState,
+        isLoading,
+        login,
+        logout,
+        updateCurrentUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

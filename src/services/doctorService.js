@@ -11,9 +11,12 @@ export const doctorService = {
     return await apiClient.get(`/doctors/${id}`);
   },
 
-  getAvailableSlots: async (doctorId, date) => {
-    const endpoint = date
-      ? `/doctors/${doctorId}/available-slots?date=${encodeURIComponent(date)}`
+  getAvailableSlots: async (doctorId, date, durationMinutes) => {
+    const params = new URLSearchParams();
+    if (date) params.set('date', date);
+    if (durationMinutes) params.set('durationMinutes', durationMinutes);
+    const endpoint = params.size
+      ? `/doctors/${doctorId}/available-slots?${params.toString()}`
       : `/doctors/${doctorId}/available-slots`;
     return await apiClient.get(endpoint);
   },
@@ -22,4 +25,3 @@ export const doctorService = {
     return await apiClient.get('/doctors/specialties');
   },
 };
-

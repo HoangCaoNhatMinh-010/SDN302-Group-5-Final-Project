@@ -2,114 +2,89 @@ import mongoose from 'mongoose';
 
 const appointmentSchema = new mongoose.Schema(
   {
-    code: {
-      type: String,
-      unique: true,
-      index: true,
-    },
-    patientId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    patientName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    petName: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    petBreed: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    isForFamilyMember: {
-      type: Boolean,
-      default: true,
-    },
-    familyMemberId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'FamilyMember',
-      default: null,
-    },
-    doctorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Doctor',
-      default: null,
-    },
-    doctorName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    specialty: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    room: {
-      type: String,
-      default: 'Khu Spa & Grooming - Bàn 1',
-    },
-    date: {
-      type: String,
-      required: true,
-    },
-    time: {
-      type: String,
-      required: true,
-    },
+    owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Owner', required: true },
+    pet_id: { type: mongoose.Schema.Types.ObjectId, ref: 'FamilyMember', required: true },
+    service_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Specialty', required: true },
+    staff_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
+    appointment_date: { type: Date, required: true },
+    start_time: { type: String, required: true },
+    end_time: { type: String, required: true },
     status: {
       type: String,
-      enum: ['WAITING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'],
-      default: 'CONFIRMED',
+      enum: [
+        'REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'COMPLETED', 'CANCELLED_EARLY',
+        'CANCELLED_LATE', 'REJECTED', 'NO_SHOW', 'PENDING', 'WAITING', 'IN_PROGRESS', 'CANCELLED',
+      ],
+      default: 'REQUESTED',
     },
-    type: {
-      type: String,
-      default: 'Gói Chăm sóc Thú cưng',
+    owner_snapshot: {
+      full_name: { type: String, default: '' },
+      phone: { type: String, default: '' },
     },
-    symptoms: {
-      type: String,
-      default: '',
+    pet_snapshot: {
+      name: { type: String, default: '' },
+      species: { type: String, default: '' },
+      breed: { type: String, default: '' },
+      allergies: { type: [String], default: [] },
+      special_notes: { type: String, default: '' },
     },
-    notes: {
-      type: String,
-      default: '',
+    service_snapshot: {
+      name: { type: String, default: '' },
+      price: { type: Number, min: 0 },
+      duration_minutes: { type: Number, min: 1 },
+      requires_vet_license: { type: Boolean, default: false },
     },
-    cancelReason: {
-      type: String,
-      default: '',
-    },
+    customer_notes: { type: String, default: '' },
+    deposit_required: { type: Number, default: 0, min: 0 },
+    deposit_paid: { type: Number, default: 0, min: 0 },
+    deposit_status: { type: String, enum: ['PAID', 'FORFEITED', 'NONE', 'REFUNDED', 'PENDING'], default: 'NONE' },
+    slot_key: { type: String, default: '' },
+    reservation_keys: { type: [String], default: undefined },
+    created_by: { type: mongoose.Schema.Types.Mixed },
+    requested_at: { type: Date, default: Date.now },
+    confirmed_at: Date,
+    schema_version: { type: Number, default: 1 },
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        if (ret._id) {
-          ret.id = ret._id.toString();
-          delete ret._id;
-        }
-        if (ret.patientId) {
-          ret.patientId = ret.patientId._id ? ret.patientId._id.toString() : ret.patientId.toString();
-        }
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  { timestamps: true, collection: 'appointments' }
 );
 
-// Auto generate code before save if not present
-appointmentSchema.pre('save', async function (next) {
-  if (!this.code) {
-    this.code = `PET-${Math.floor(1000 + Math.random() * 9000)}`;
-  }
-  next();
+appointmentSchema.index({ owner_id: 1, createdAt: -1 });
+appointmentSchema.index({ staff_id: 1, appointment_date: 1, status: 1 });
+appointmentSchema.index({ reservation_keys: 1 }, { unique: true, sparse: true });
+
+appointmentSchema.set('toJSON', {
+  transform(doc, ret) {
+    const id = ret._id.toString();
+    const staff = ret.staff_id;
+    ret.id = id;
+    ret.code = ret.code || id;
+    ret.patientId = ret.owner_id?.toString();
+    ret.patientName = ret.owner_snapshot?.full_name || '';
+    ret.petName = ret.pet_snapshot?.name || '';
+    ret.petBreed = ret.pet_snapshot?.breed || '';
+    ret.doctorId = (staff?._id || staff)?.toString();
+    ret.doctorName = staff?.full_name || '';
+    ret.specialty = ret.service_snapshot?.name || '';
+    ret.type = ret.service_snapshot?.name || '';
+    ret.date = ret.appointment_date?.toLocaleDateString('en-GB', { timeZone: 'UTC' }) || '';
+    ret.time = `${ret.start_time} - ${ret.end_time}`;
+    ret.notes = ret.customer_notes || '';
+    ret.careNotes = ret.customer_notes || '';
+    ret.serviceSnapshot = {
+      name: ret.service_snapshot?.name || '',
+      price: ret.service_snapshot?.price,
+      durationMinutes: ret.service_snapshot?.duration_minutes,
+    };
+    ret.petSnapshot = {
+      name: ret.pet_snapshot?.name || '',
+      species: ret.pet_snapshot?.species || '',
+      breed: ret.pet_snapshot?.breed || '',
+    };
+    ret.customerSnapshot = ret.owner_snapshot;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
 });
 
-export const Appointment = mongoose.model('Appointment', appointmentSchema);
+export const Appointment = mongoose.model('Appointment', appointmentSchema, 'appointments');

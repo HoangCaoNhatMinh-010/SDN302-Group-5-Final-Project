@@ -21,10 +21,23 @@ export const AppointmentCard = ({ appointment, onAction, actionLabel = 'Xem chi 
         </div>
 
         <div className="mt-3 space-y-1.5">
-          <h4 className="text-sm font-bold text-slate-900">{appointment.patientName}</h4>
+          <h4 className="text-sm font-bold text-slate-900">
+            {appointment.petName || appointment.patientName}
+          </h4>
+          {appointment.petName && (
+            <p className="text-xs text-slate-500">Chủ nuôi: {appointment.patientName}</p>
+          )}
+          {appointment.serviceSnapshot && (
+            <p className="text-xs text-slate-500">
+              {appointment.serviceSnapshot.durationMinutes} phút
+              {Number.isFinite(appointment.serviceSnapshot.price)
+                ? ` • ${appointment.serviceSnapshot.price.toLocaleString('vi-VN')} đ`
+                : ''}
+            </p>
+          )}
           <p className="text-xs text-slate-600 flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-slate-400" />
-            Bác sĩ: <span className="font-medium text-slate-800">{appointment.doctorName}</span>
+            Chuyên viên: <span className="font-medium text-slate-800">{appointment.doctorName}</span>
           </p>
           <p className="text-xs text-slate-500 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />

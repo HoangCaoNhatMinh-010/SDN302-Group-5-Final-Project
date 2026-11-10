@@ -14,7 +14,6 @@ const adminSettingSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ADMIN_SETTING_SECTIONS,
-      index: true,
     },
     name: {
       type: String,

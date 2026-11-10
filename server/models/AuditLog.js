@@ -5,7 +5,6 @@ const auditLogSchema = new mongoose.Schema(
     actorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      index: true,
     },
     actorName: {
       type: String,
@@ -18,12 +17,10 @@ const auditLogSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      index: true,
     },
     category: {
       type: String,
       required: true,
-      index: true,
     },
     target: {
       type: String,
@@ -41,6 +38,9 @@ const auditLogSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ category: 1, createdAt: -1 });
 
 auditLogSchema.set('toJSON', {
   transform(doc, ret) {

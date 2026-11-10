@@ -50,7 +50,7 @@ export const GroomersPage = () => {
       <Breadcrumb
         items={[
           { label: 'Trang chủ', path: '/patient/dashboard' },
-          { label: 'Đội ngũ Chuyên viên & Bác sĩ Thú Y' },
+          { label: 'Đội ngũ chuyên viên chăm sóc' },
         ]}
       />
 
@@ -58,7 +58,7 @@ export const GroomersPage = () => {
         <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm mb-2">
           <span>🐾 PawCare Team</span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Đội ngũ Chuyên viên Groomer & Bác sĩ Thú Y</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Đội ngũ Spa & Grooming</h1>
         <p className="mt-1 text-sm text-amber-50 max-w-2xl">
           Đội ngũ được đào tạo bài bản với các chứng chỉ Grooming quốc tế, kiên nhẫn, yêu thương động vật và luôn đặt sự an toàn, thoải mái của thú cưng lên hàng đầu.
         </p>
@@ -125,4 +125,3 @@ export const GroomersPage = () => {
     </div>
   );
 };
-

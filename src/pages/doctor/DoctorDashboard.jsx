@@ -37,28 +37,31 @@ export const DoctorDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const doctorSchedule = [
+  const careSchedule = [
     {
       id: 'APT-1003',
       patientName: 'Lê Quốc Bảo',
       time: '09:30 - 10:00',
-      reason: 'Tái khám huyết áp & kê đơn',
+      petName: 'Milo (Poodle)',
+      reason: 'Cắt tỉa form Teddy',
       status: 'IN_PROGRESS',
       phone: '0981 123 456',
     },
     {
       id: 'APT-1002',
-      patientName: 'Trần Hoài An',
+      patientName: 'Lê Thu Hương',
+      petName: 'Bông Bông (Mèo Anh)',
       time: '10:00 - 10:30',
-      reason: 'Đau đầu âm ỉ kéo dài',
+      reason: 'Tắm Spa & chải lông',
       status: 'WAITING',
       phone: '0972 345 678',
     },
     {
       id: 'APT-1001',
       patientName: 'Nguyễn Văn Minh',
+      petName: 'LuLu (Corgi)',
       time: '10:30 - 11:00',
-      reason: 'Khám sức khỏe tổng quát',
+      reason: 'Cắt móng & vệ sinh tai',
       status: 'CONFIRMED',
       phone: '0901 234 567',
     },
@@ -67,7 +70,7 @@ export const DoctorDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <Breadcrumb items={[{ label: 'Lịch khám của tôi' }]} />
+      <Breadcrumb items={[{ label: 'Lịch chăm sóc của tôi' }]} />
 
       {/* 1. Welcome Card */}
       <div className="rounded-2xl bg-gradient-to-r from-blue-800 via-primary-700 to-indigo-700 p-6 sm:p-8 text-white shadow-elevated">
@@ -75,13 +78,13 @@ export const DoctorDashboard = () => {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm mb-3">
               <Stethoscope className="w-3.5 h-3.5 text-sky-200" />
-              <span>Chuyên khoa Nội tổng quát • {currentUser?.room || 'Phòng 204'}</span>
+              <span>{currentUser?.specialty || 'Spa & Grooming'} • {currentUser?.room || 'Khu Grooming'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Lịch khám của tôi
+              Lịch chăm sóc của tôi
             </h1>
             <p className="mt-1 text-sm text-sky-100 max-w-xl">
-              Xin chào, {currentUser?.name || 'BS. Nguyễn Minh Anh'}. Bạn có 14 lượt khám được xếp lịch trong ngày hôm nay.
+              Xin chào, {currentUser?.name || 'Chuyên viên Mai Anh'}. Bạn có các lịch chăm sóc thú cưng trong ngày hôm nay.
             </p>
           </div>
 
@@ -90,10 +93,10 @@ export const DoctorDashboard = () => {
               variant="light"
               size="md"
               leftIcon={<Play className="w-4 h-4 text-primary-700 fill-current" />}
-              onClick={() => toast.info('Bắt đầu buổi khám cho bệnh nhân Lê Quốc Bảo')}
+              onClick={() => toast.info('Bắt đầu ca chăm sóc cho bé Milo')}
               className="bg-white text-primary-700 hover:bg-slate-50 border-0 shadow-sm"
             >
-              Tiếp tục ca khám
+              Bắt đầu ca chăm sóc
             </Button>
             <Button
               variant="outline"
@@ -102,7 +105,7 @@ export const DoctorDashboard = () => {
               onClick={() => navigate('/doctor/block-time')}
               className="border-white/40 text-white hover:bg-white/10"
             >
-              Block time
+              Giờ nghỉ
             </Button>
             <Button
               variant="ghost"
@@ -111,7 +114,7 @@ export const DoctorDashboard = () => {
               onClick={() => navigate('/doctor/clinical-notes')}
               className="text-white hover:bg-white/10"
             >
-              Ghi chú ca khám
+              Ghi chú chăm sóc
             </Button>
           </div>
         </div>
@@ -120,8 +123,8 @@ export const DoctorDashboard = () => {
       {/* 2. Doctor Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Tổng ca khám hôm nay"
-          value="14"
+          title="Lịch chăm sóc hôm nay"
+          value="12"
           trend="Hôm nay"
           trendType="neutral"
           trendLabel="Ca sáng & chiều"
@@ -130,26 +133,26 @@ export const DoctorDashboard = () => {
         />
         <StatCard
           title="Đã hoàn thành"
-          value="8"
-          trend="57%"
+          value="7"
+          trend="58%"
           trendType="up"
-          trendLabel="Tiến độ ca trực"
+          trendLabel="Tiến độ ca làm"
           icon={<CheckCircle className="w-5 h-5 text-emerald-600" />}
           iconColor="bg-emerald-50 text-emerald-600"
         />
         <StatCard
-          title="Đang chờ vào phòng"
-          value="5"
-          trend="Phòng chờ A"
+          title="Thú cưng đang chờ"
+          value="3"
+          trend="Khu tiếp đón"
           trendType="neutral"
           trendLabel="Đã check-in"
           icon={<Clock className="w-5 h-5 text-amber-600" />}
           iconColor="bg-amber-50 text-amber-600"
         />
         <StatCard
-          title="Thời gian đã Block"
+          title="Thời gian nghỉ"
           value="1h"
-          trend="Hội chẩn"
+          trend="Giờ nghỉ"
           trendType="neutral"
           trendLabel="11:30 - 12:30"
           icon={<Ban className="w-5 h-5 text-purple-600" />}
@@ -161,9 +164,9 @@ export const DoctorDashboard = () => {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Danh sách ca khám trong ca trực</CardTitle>
+            <CardTitle>Lịch chăm sóc trong ca làm</CardTitle>
             <CardDescription>
-              Xem hồ sơ bệnh án, bắt đầu thăm khám và cập nhật ghi chú y khoa
+              Xem thông tin thú cưng, bắt đầu dịch vụ và cập nhật lưu ý chăm sóc
             </CardDescription>
           </div>
           <Button
@@ -180,15 +183,15 @@ export const DoctorDashboard = () => {
             <TableHeader>
               <TableRow hover={false}>
                 <TableHead>Khung giờ</TableHead>
-                <TableHead>Bệnh nhân</TableHead>
-                <TableHead>Lý do khám / Triệu chứng</TableHead>
+                <TableHead>Khách hàng & thú cưng</TableHead>
+                <TableHead>Dịch vụ</TableHead>
                 <TableHead>Số điện thoại</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {doctorSchedule.map((item) => (
+              {careSchedule.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium text-xs text-slate-700">
                     <div className="flex items-center gap-1.5">
@@ -198,6 +201,7 @@ export const DoctorDashboard = () => {
                   </TableCell>
                   <TableCell>
                     <div className="font-semibold text-xs text-slate-900">{item.patientName}</div>
+                    <div className="text-[11px] text-slate-500">{item.petName}</div>
                     <div className="text-[11px] text-slate-400">{item.id}</div>
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">
@@ -214,15 +218,15 @@ export const DoctorDashboard = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => toast.success(`Mở bệnh án cho ${item.patientName}`)}
+                        onClick={() => toast.success(`Bắt đầu dịch vụ cho ${item.petName}`)}
                       >
-                        Tiếp tục khám
+                        Tiếp tục chăm sóc
                       </Button>
                     ) : item.status === 'WAITING' ? (
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => toast.info(`Đang gọi ${item.patientName} vào phòng 204`)}
+                        onClick={() => toast.info(`Mời ${item.petName} vào khu chăm sóc`)}
                       >
                         Gọi vào
                       </Button>
@@ -230,7 +234,7 @@ export const DoctorDashboard = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.info(`Xem thông tin ${item.patientName}`)}
+                        onClick={() => toast.info(`Xem hồ sơ chăm sóc của ${item.petName}`)}
                       >
                         Hồ sơ
                       </Button>

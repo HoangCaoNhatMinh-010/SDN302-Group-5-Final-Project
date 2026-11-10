@@ -1,4 +1,17 @@
 import { User } from '../models/User.js';
+import { findOwnerForIdentity, resolveOwner } from '../utils/resolveOwner.js';
+
+const parseOwnerBirthDate = (value) => {
+  if (!value) return null;
+  const match = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1])));
+  return date.getUTCFullYear() === Number(match[3])
+    && date.getUTCMonth() === Number(match[2]) - 1
+    && date.getUTCDate() === Number(match[1])
+    ? date
+    : null;
+};
 
 /**
  * @desc   Lấy thông tin hồ sơ người dùng
@@ -38,6 +51,8 @@ export const updateProfile = async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản.' });
 
     // Kiểm tra trùng email với người khác
     const emailExist = await User.findOne({ email: cleanEmail, _id: { $ne: req.user.id } });
@@ -51,7 +66,10 @@ export const updateProfile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Số điện thoại này đã được sử dụng bởi người dùng khác' });
     }
 
-    const user = await User.findById(req.user.id);
+    if (dateOfBirth !== undefined && dateOfBirth !== '' && !parseOwnerBirthDate(dateOfBirth)) {
+      return res.status(400).json({ success: false, message: 'Ngày sinh phải theo định dạng DD/MM/YYYY.' });
+    }
+
     user.name = name.trim();
     user.email = cleanEmail;
     user.phone = cleanPhone;
@@ -60,6 +78,28 @@ export const updateProfile = async (req, res) => {
     if (address !== undefined) user.address = address;
     if (avatar !== undefined) user.avatar = avatar;
 
+    if (user.role === 'PATIENT' && user.ownerLinkStatus !== 'PENDING') {
+      const matchingOwner = await findOwnerForIdentity({ email: cleanEmail, phone: cleanPhone });
+      if (matchingOwner && user.ownerId && !matchingOwner._id.equals(user.ownerId)) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email hoặc số điện thoại thuộc hồ sơ chủ thú cưng khác. Vui lòng liên hệ cửa hàng để xác minh.',
+        });
+      }
+
+      const owner = await resolveOwner(user);
+      owner.full_name = user.name;
+      owner.email = user.email;
+      owner.phone = user.phone;
+      if (user.address !== undefined) owner.address = user.address;
+      if (user.dateOfBirth !== undefined) {
+        owner.date_of_birth = user.dateOfBirth ? parseOwnerBirthDate(user.dateOfBirth) : undefined;
+      }
+      if (user.gender) {
+        owner.gender = { Nam: 'male', Nữ: 'female', Khác: 'other' }[user.gender];
+      }
+      await owner.save();
+    }
     await user.save();
 
     return res.status(200).json({
@@ -68,7 +108,7 @@ export const updateProfile = async (req, res) => {
       data: user,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
@@ -112,4 +152,3 @@ export const changePassword = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-

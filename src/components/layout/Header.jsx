@@ -1,46 +1,26 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Menu,
   Bell,
   Search,
   LogOut,
   User,
-  Shield,
-  Check,
   ChevronDown,
-  Sparkles,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { ROLES, ROLE_LABELS } from '../../utils/constants';
-import { DEMO_USERS, MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { ROLE_LABELS } from '../../utils/constants';
+import { MOCK_NOTIFICATIONS } from '../../data/mockData';
 import { Avatar, Badge, Dropdown, DropdownItem, DropdownDivider } from '../common';
 
-export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
-  const { currentUser, role, logout, setRole } = useAuth();
+export const Header = ({ onToggleSidebar }) => {
+  const { currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const toast = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS);
 
   const unreadCount = unreadNotifications.filter((n) => !n.read).length;
-
-  const handleRoleSwitch = (newRole) => {
-    setRole(newRole);
-    toast.success(`Đã chuyển sang vai trò: ${ROLE_LABELS[newRole]}`);
-    
-    // Navigate to new role dashboard
-    const roleRoutes = {
-      [ROLES.PATIENT]: '/patient/dashboard',
-      [ROLES.RECEPTIONIST]: '/receptionist/dashboard',
-      [ROLES.DOCTOR]: '/doctor/dashboard',
-      [ROLES.ADMIN]: '/admin/dashboard',
-      [ROLES.CLINIC_MANAGER]: '/manager/dashboard',
-    };
-    navigate(roleRoutes[newRole] || '/');
-  };
 
   const handleLogout = () => {
     logout();
@@ -97,62 +77,11 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
         </div>
       </div>
 
-      {/* Right side: Role Switcher + Notifications + User Avatar */}
+      {/* Right side: Current role, notifications, and user menu */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Fast Role Switcher (Crucial for Reviewer / Multi-role simulation) */}
-        <Dropdown
-          align="right"
-          trigger={
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all">
-              <Shield className="w-3.5 h-3.5 text-primary-600" />
-              <span className="hidden lg:inline text-slate-500">Vai trò:</span>
-              <span className="font-semibold text-slate-800">
-                {ROLE_LABELS[role] || 'Chọn vai trò'}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-            </div>
-          }
-        >
-          <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-800 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Chuyển vai trò thử nghiệm
-            </p>
-            <p className="text-[11px] text-slate-400">
-              Chọn tài khoản demo để trải nghiệm giao diện
-            </p>
-          </div>
-          {Object.values(ROLES).map((r) => {
-            const isCurrent = role === r;
-            const demoUser = DEMO_USERS[r];
-            return (
-              <button
-                key={r}
-                onClick={() => handleRoleSwitch(r)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors ${
-                  isCurrent
-                    ? 'bg-primary-50 font-semibold text-primary-700'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span>{ROLE_LABELS[r]}</span>
-                    {isCurrent && (
-                      <span className="text-[10px] bg-primary-100 text-primary-800 px-1.5 py-0.2 rounded font-normal">
-                        Hiện tại
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-normal">
-                    {demoUser?.name}
-                  </span>
-                </div>
-                {isCurrent && <Check className="w-4 h-4 text-primary-600 flex-shrink-0" />}
-              </button>
-            );
-          })}
-        </Dropdown>
+        <span className="hidden rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 sm:inline">
+          {ROLE_LABELS[role] || 'Người dùng'}
+        </span>
 
         {/* Notifications Dropdown */}
         <Dropdown

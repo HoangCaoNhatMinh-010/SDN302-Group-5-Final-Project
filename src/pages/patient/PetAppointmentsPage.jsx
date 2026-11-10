@@ -85,10 +85,10 @@ export const PetAppointmentsPage = () => {
   const filteredAppointments = appointments.filter((apt) => {
     if (activeTab === 'all') return true;
     if (activeTab === 'upcoming') {
-      return apt.status === 'CONFIRMED' || apt.status === 'WAITING' || apt.status === 'IN_PROGRESS';
+      return ['REQUESTED', 'AWAITING_DEPOSIT', 'PENDING', 'CONFIRMED', 'WAITING', 'IN_PROGRESS'].includes(apt.status);
     }
     if (activeTab === 'completed') return apt.status === 'COMPLETED';
-    if (activeTab === 'cancelled') return apt.status === 'CANCELLED' || apt.status === 'NO_SHOW';
+    if (activeTab === 'cancelled') return ['CANCELLED', 'CANCELLED_EARLY', 'CANCELLED_LATE', 'NO_SHOW', 'REJECTED'].includes(apt.status);
     return true;
   });
 
@@ -97,7 +97,7 @@ export const PetAppointmentsPage = () => {
     {
       id: 'upcoming',
       label: 'Sắp tới',
-      count: appointments.filter((a) => a.status === 'CONFIRMED' || a.status === 'WAITING' || a.status === 'IN_PROGRESS').length,
+      count: appointments.filter((a) => ['REQUESTED', 'AWAITING_DEPOSIT', 'PENDING', 'CONFIRMED', 'WAITING', 'IN_PROGRESS'].includes(a.status)).length,
     },
     {
       id: 'completed',
@@ -107,7 +107,7 @@ export const PetAppointmentsPage = () => {
     {
       id: 'cancelled',
       label: 'Đã hủy',
-      count: appointments.filter((a) => a.status === 'CANCELLED' || a.status === 'NO_SHOW').length,
+      count: appointments.filter((a) => ['CANCELLED', 'CANCELLED_EARLY', 'CANCELLED_LATE', 'NO_SHOW', 'REJECTED'].includes(a.status)).length,
     },
   ];
 
@@ -161,7 +161,7 @@ export const PetAppointmentsPage = () => {
           ) : (
             <div className="space-y-4">
               {filteredAppointments.map((apt) => {
-                const canCancel = apt.status === 'CONFIRMED' || apt.status === 'WAITING';
+                const canCancel = ['REQUESTED', 'AWAITING_DEPOSIT', 'PENDING', 'CONFIRMED', 'WAITING'].includes(apt.status);
                 return (
                   <div
                     key={apt.id || apt.code}
@@ -202,9 +202,9 @@ export const PetAppointmentsPage = () => {
                           </span>
                         </div>
 
-                        {apt.symptoms && (
+                        {(apt.careNotes || apt.symptoms) && (
                           <p className="mt-2 text-xs text-amber-900 bg-amber-50/70 px-2.5 py-1 rounded-md border border-amber-100 inline-block">
-                            Ghi chú: {apt.symptoms}
+                            Ghi chú: {apt.careNotes || apt.symptoms}
                           </p>
                         )}
                       </div>
@@ -256,4 +256,3 @@ export const PetAppointmentsPage = () => {
     </div>
   );
 };
-

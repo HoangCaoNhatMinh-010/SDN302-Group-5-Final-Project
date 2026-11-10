@@ -6,7 +6,6 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     title: {
       type: String,
@@ -46,5 +45,6 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-export const Notification = mongoose.model('Notification', notificationSchema);
+notificationSchema.index({ userId: 1, createdAt: -1 });
 
+export const Notification = mongoose.model('Notification', notificationSchema);

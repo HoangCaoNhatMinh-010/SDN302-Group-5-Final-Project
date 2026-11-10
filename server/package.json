@@ -1,7 +1,7 @@
 {
-  "name": "medcare-backend",
+  "name": "pawcare-backend",
   "version": "1.0.0",
-  "description": "Backend API for MedCare Clinic System (User & Patient Services)",
+  "description": "Backend API for pet grooming and spa appointment management",
   "main": "server.js",
   "type": "module",
   "scripts": {

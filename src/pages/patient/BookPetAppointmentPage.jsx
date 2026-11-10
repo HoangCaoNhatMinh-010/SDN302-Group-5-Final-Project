@@ -33,17 +33,6 @@ import {
   LoadingState,
 } from '../../components/common';
 
-const TIME_SLOTS = [
-  '08:30 - 09:30',
-  '09:30 - 10:30',
-  '10:30 - 11:30',
-  '13:30 - 14:30',
-  '14:30 - 15:30',
-  '15:30 - 16:30',
-  '16:30 - 17:30',
-  '18:00 - 19:00',
-];
-
 export const BookPetAppointmentPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -54,6 +43,8 @@ export const BookPetAppointmentPage = () => {
   const [groomers, setGroomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // Form Selection States
   const [selectedPet, setSelectedPet] = useState(null);
@@ -64,8 +55,15 @@ export const BookPetAppointmentPage = () => {
     today.setDate(today.getDate() + 1);
     return today.toISOString().split('T')[0];
   });
-  const [selectedTime, setSelectedTime] = useState('09:30 - 10:30');
+  const [selectedTime, setSelectedTime] = useState('');
   const [specialNotes, setSpecialNotes] = useState('');
+  const serviceGroomers = selectedService
+    ? groomers.filter((groomer) => (
+      groomer.serviceIds?.length
+        ? groomer.serviceIds.some((id) => (id.id || id).toString() === (selectedService.id || selectedService._id).toString())
+        : groomer.specialty === selectedService.name
+    ))
+    : [];
 
   useEffect(() => {
     const loadData = async () => {
@@ -91,8 +89,15 @@ export const BookPetAppointmentPage = () => {
 
         const loadedGroomers = groomersRes.data || [];
         setGroomers(loadedGroomers);
-        if (loadedGroomers.length > 0) {
-          setSelectedGroomer(loadedGroomers[0]);
+        const initialService = loadedServices[0];
+        const initialServiceId = initialService && (initialService.id || initialService._id).toString();
+        const initialGroomer = loadedGroomers.find((groomer) => (
+          groomer.serviceIds?.length
+            ? groomer.serviceIds.some((id) => (id.id || id).toString() === initialServiceId)
+            : groomer.specialty === initialService?.name
+        ));
+        if (initialGroomer) {
+          setSelectedGroomer(initialGroomer);
         }
       } catch (err) {
         toast.error('Không thể tải dữ liệu dịch vụ thú cưng.');
@@ -103,6 +108,42 @@ export const BookPetAppointmentPage = () => {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!selectedGroomer || !selectedDate || !selectedService) {
+      setAvailableTimes([]);
+      setSelectedTime('');
+      return undefined;
+    }
+
+    let active = true;
+    const dateParts = selectedDate.split('-');
+    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+    const groomerId = selectedGroomer.id || selectedGroomer._id;
+    setIsLoadingSlots(true);
+    doctorService.getAvailableSlots(groomerId, formattedDate, selectedService.durationMinutes)
+      .then((response) => {
+        if (!active) return;
+        const times = (response.slots || response.data?.slots || [])
+          .filter((slot) => slot.isAvailable)
+          .map((slot) => slot.time);
+        setAvailableTimes(times);
+        setSelectedTime((current) => times.includes(current) ? current : (times[0] || ''));
+      })
+      .catch((error) => {
+        if (!active) return;
+        setAvailableTimes([]);
+        setSelectedTime('');
+        toast.error(error.message || 'Không thể tải giờ làm việc của chuyên viên.');
+      })
+      .finally(() => {
+        if (active) setIsLoadingSlots(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedGroomer, selectedDate, selectedService, toast]);
 
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
@@ -135,10 +176,11 @@ export const BookPetAppointmentPage = () => {
 
       const payload = {
         doctorId: selectedGroomer.id || selectedGroomer._id,
+        serviceId: selectedService.id || selectedService._id,
         date: formattedDate,
         time: selectedTime,
         type: selectedService.name,
-        symptoms: specialNotes ? `[${selectedPet.name} - ${selectedPet.breed || 'Pet'}]: ${specialNotes}` : `Chăm sóc bé ${selectedPet.name}`,
+        careNotes: specialNotes ? `[${selectedPet.name} - ${selectedPet.breed || 'Pet'}]: ${specialNotes}` : `Chăm sóc bé ${selectedPet.name}`,
         notes: `Gói ${selectedService.name} - Bé ${selectedPet.name} (${selectedPet.petType || 'Chó'})`,
         isForFamilyMember: true,
         familyMemberId: selectedPet.id || selectedPet._id,
@@ -272,7 +314,20 @@ export const BookPetAppointmentPage = () => {
                 return (
                   <div
                     key={srv.id || srv._id}
-                    onClick={() => setSelectedService(srv)}
+                    onClick={() => {
+                      setSelectedService(srv);
+                      const serviceId = (srv.id || srv._id).toString();
+                      const matchingGroomers = groomers.filter((groomer) => (
+                        groomer.serviceIds?.length
+                          ? groomer.serviceIds.some((id) => (id.id || id).toString() === serviceId)
+                          : groomer.specialty === srv.name
+                      ));
+                      if (!matchingGroomers.some((groomer) => (
+                        (groomer.id || groomer._id) === (selectedGroomer?.id || selectedGroomer?._id)
+                      ))) {
+                        setSelectedGroomer(matchingGroomers[0] || null);
+                      }
+                    }}
                     className={`cursor-pointer rounded-2xl p-4 border transition-all duration-150 flex flex-col justify-between ${
                       isSelected
                         ? 'border-amber-500 bg-amber-50/70 shadow-xs ring-2 ring-amber-500/20'
@@ -282,9 +337,12 @@ export const BookPetAppointmentPage = () => {
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-1.5">
                         <h4 className="font-bold text-slate-900 text-sm">{srv.name}</h4>
-                        <span className="text-xs font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md flex-shrink-0">
-                          {srv.price ? srv.price.toLocaleString('vi-VN') + ' đ' : '180.000 đ'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-xs font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                            {srv.price ? srv.price.toLocaleString('vi-VN') + ' đ' : '180.000 đ'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">{srv.durationMinutes || 60} phút</span>
+                        </div>
                       </div>
                       <p className="text-xs text-slate-600 leading-relaxed">{srv.description}</p>
                     </div>
@@ -300,7 +358,7 @@ export const BookPetAppointmentPage = () => {
           </CardContent>
         </Card>
 
-        {/* BƯỚC 3: Chọn Chuyên viên Groomer / Bác sĩ Thú y */}
+        {/* BƯỚC 3: Chọn chuyên viên chăm sóc */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2.5">
@@ -308,14 +366,19 @@ export const BookPetAppointmentPage = () => {
                 3
               </div>
               <div>
-                <CardTitle className="text-base">Chọn Chuyên viên / Bác sĩ Phụ trách</CardTitle>
+                <CardTitle className="text-base">Chọn chuyên viên phụ trách</CardTitle>
                 <CardDescription>Đội ngũ Groomer tay nghề cao, yêu thương thú cưng hết lòng</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-2">
+            {serviceGroomers.length === 0 ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Hiện chưa có chuyên viên được phân công cho dịch vụ này.
+              </p>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {groomers.map((doc) => {
+              {serviceGroomers.map((doc) => {
                 const isSelected = selectedGroomer?.id === doc.id || selectedGroomer?._id === doc._id;
                 return (
                   <div
@@ -349,6 +412,7 @@ export const BookPetAppointmentPage = () => {
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
 
@@ -384,7 +448,11 @@ export const BookPetAppointmentPage = () => {
                 Khung giờ hẹn *
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {TIME_SLOTS.map((slot) => {
+                {isLoadingSlots && <p className="col-span-full text-xs text-slate-500">Đang tải ca làm việc...</p>}
+                {!isLoadingSlots && availableTimes.length === 0 && (
+                  <p className="col-span-full text-xs text-amber-700">Không có khung giờ trống trong ca làm của chuyên viên vào ngày này.</p>
+                )}
+                {availableTimes.map((slot) => {
                   const isSelected = selectedTime === slot;
                   return (
                     <button
@@ -455,4 +523,3 @@ export const BookPetAppointmentPage = () => {
     </div>
   );
 };
-

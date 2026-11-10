@@ -1,86 +1,61 @@
 import mongoose from 'mongoose';
 
-const familyMemberSchema = new mongoose.Schema(
+const vaccinationSchema = new mongoose.Schema(
   {
-    patientId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    // Tên thú cưng (hoặc tên người thân)
-    name: {
-      type: String,
-      required: [true, 'Tên thú cưng không được để trống'],
-      trim: true,
-    },
-    // Loại thú cưng (Chó, Mèo, Hamster, Khác) hoặc mối quan hệ
-    relationship: {
-      type: String,
-      required: [true, 'Vui lòng chọn loại thú cưng hoặc phân loại'],
-      trim: true,
-    },
-    petType: {
-      type: String,
-      default: 'Chó',
-      trim: true,
-    },
-    breed: {
-      type: String,
-      trim: true,
-      default: 'Chưa rõ',
-    },
-    weight: {
-      type: Number,
-      default: 3.5, // kg
-    },
-    dateOfBirth: {
-      type: String,
-      required: [true, 'Vui lòng nhập ngày sinh hoặc tuổi của thú cưng'],
-      trim: true,
-    },
-    gender: {
-      type: String,
-      default: 'Đực',
-      trim: true,
-    },
-    phone: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    address: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    idCard: {
-      type: String,
-      trim: true,
-      default: '', // Mã vòng cổ / Microchip / Thẻ thú cưng
-    },
-    note: {
-      type: String,
-      trim: true,
-      default: '', // Thói quen, lưu ý khi tắm/cắt tỉa, tiêm phòng...
-    },
+    vaccine_name: { type: String, trim: true },
+    vaccinated_at: Date,
+    next_due_date: Date,
+    lot_number: { type: String, trim: true },
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        if (ret._id) {
-          ret.id = ret._id.toString();
-          delete ret._id;
-        }
-        if (ret.patientId) {
-          ret.patientId = ret.patientId._id ? ret.patientId._id.toString() : ret.patientId.toString();
-        }
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  { _id: true }
 );
 
-export const FamilyMember = mongoose.model('FamilyMember', familyMemberSchema);
+const familyMemberSchema = new mongoose.Schema(
+  {
+    owner_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Owner',
+      required: true,
+    },
+    name: { type: String, required: true, trim: true },
+    species: { type: String, enum: ['dog', 'cat', 'rabbit'], required: true },
+    breed: { type: String, trim: true, default: 'Unknown' },
+    birth_date: Date,
+    gender: { type: String, enum: ['male', 'female', 'unknown'], default: 'unknown' },
+    weight_kg: { type: Number, min: 0, max: 200 },
+    color: { type: String, default: '' },
+    is_neutered: { type: Boolean, default: false },
+    allergies: { type: [String], default: [] },
+    special_notes: { type: String, default: '' },
+    pet_tag: { type: String, default: '' },
+    vaccinations: { type: [vaccinationSchema], default: [] },
+    next_vaccine_due_date: Date,
+    is_active: { type: Boolean, default: true },
+    deleted_at: { type: Date, default: null },
+    schema_version: { type: Number, default: 1 },
+  },
+  { timestamps: true, collection: 'pets' }
+);
+
+familyMemberSchema.index({ owner_id: 1, createdAt: -1 });
+
+familyMemberSchema.set('toJSON', {
+  transform(doc, ret) {
+    ret.id = ret._id.toString();
+    ret.patientId = ret.owner_id?.toString();
+    ret.petType = { dog: 'Chó', cat: 'Mèo', rabbit: 'Khác' }[ret.species] || 'Khác';
+    ret.relationship = ret.petType;
+    ret.weight = ret.weight_kg;
+    ret.dateOfBirth = ret.birth_date;
+    ret.genderCode = ret.gender;
+    ret.gender = { male: 'Đực', female: 'Cái', unknown: 'Khác' }[ret.gender] || ret.gender;
+    ret.note = ret.special_notes;
+    ret.idCard = ret.pet_tag;
+    ret.isActive = ret.is_active;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
+
+export const FamilyMember = mongoose.model('FamilyMember', familyMemberSchema, 'pets');

@@ -215,12 +215,12 @@ export const Sidebar = ({
               Hotline CSKH: 1900 6868
             </p>
             <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-200/60 pt-1.5">
-              <span>MedCare Plus v1.0</span>
+              <span>PawCare Studio</span>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
             </div>
           </div>
         ) : (
-          <div className="flex justify-center text-slate-400 py-1" title="MedCare Plus v1.0">
+          <div className="flex justify-center text-slate-400 py-1" title="PawCare Studio">
             <HelpCircle className="w-4 h-4" />
           </div>
         )}
@@ -253,7 +253,7 @@ export const Sidebar = ({
               <div className="h-7 w-7 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-xs">
                 MC
               </div>
-              <span className="font-bold text-sm text-slate-800">MedCare Plus</span>
+              <span className="font-bold text-sm text-slate-800">PawCare Studio</span>
             </div>
             <button
               onClick={onCloseMobile}

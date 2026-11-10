@@ -2,7 +2,9 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
+import { Appointment } from './models/Appointment.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -15,9 +17,6 @@ import adminRoutes from './routes/adminRoutes.js';
 
 // Load config
 dotenv.config();
-
-// Connect to MongoDB
-connectDB();
 
 const app = express();
 
@@ -35,9 +34,13 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    message: 'MedCare API Server is running smoothly',
+  const databaseConnected = mongoose.connection.readyState === 1;
+  res.status(databaseConnected ? 200 : 503).json({
+    status: databaseConnected ? 'online' : 'degraded',
+    database: databaseConnected ? 'connected' : 'disconnected',
+    message: databaseConnected
+      ? 'PawCare Studio API and database are ready'
+      : 'PawCare Studio database connection is unavailable',
     timestamp: new Date().toISOString(),
   });
 });
@@ -69,6 +72,19 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 MedCare Backend Server is running on http://localhost:${PORT}`);
+
+const startServer = async () => {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET must be configured with at least 32 characters before starting the API.');
+  }
+  await connectDB();
+  await Appointment.init();
+  app.listen(PORT, () => {
+    console.log(`PawCare Studio API is running on http://localhost:${PORT}`);
+  });
+};
+
+startServer().catch((error) => {
+  console.error(`[Server Startup Error]: ${error.message}`);
+  process.exitCode = 1;
 });

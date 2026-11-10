@@ -58,8 +58,7 @@ export const ForgotPasswordPage = () => {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Yêu cầu đã được tiếp nhận</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Trong môi trường thử nghiệm (Demo), hệ thống đã tạo mã khôi phục cho tài khoản liên kết với{' '}
-                  <span className="font-semibold text-slate-800">{identifier}</span>.
+                  Hướng dẫn khôi phục sẽ được gửi sau khi cửa hàng cấu hình và xác minh kênh email/SMS.
                 </p>
 
                 <div className="pt-2 space-y-2">
@@ -102,7 +101,7 @@ export const ForgotPasswordPage = () => {
                   }}
                   required
                   leftIcon={<Mail className="w-4 h-4" />}
-                  helperText="Hệ thống sẽ xác minh tài khoản và gửi liên kết đặt lại mật khẩu."
+                  helperText="Khôi phục mật khẩu hiện chưa khả dụng vì kênh xác minh chưa được cấu hình."
                 />
 
                 <div className="pt-2">

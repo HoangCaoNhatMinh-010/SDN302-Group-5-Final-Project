@@ -188,7 +188,7 @@ export const AppRoutes = () => {
           path="receptionist/master-calendar"
           element={
             <RoleRoute allowedRoles={[ROLES.RECEPTIONIST]}>
-              <PlaceholderPage title="Lịch tổng phòng khám" category="Lễ tân" />
+              <PlaceholderPage title="Lịch tổng cửa hàng" category="Tiếp đón" />
             </RoleRoute>
           }
         />
@@ -196,7 +196,7 @@ export const AppRoutes = () => {
           path="receptionist/book-for-patient"
           element={
             <RoleRoute allowedRoles={[ROLES.RECEPTIONIST]}>
-              <PlaceholderPage title="Đặt lịch hộ bệnh nhân" category="Lễ tân" />
+              <PlaceholderPage title="Đặt lịch hộ khách hàng" category="Tiếp đón" />
             </RoleRoute>
           }
         />
@@ -230,7 +230,7 @@ export const AppRoutes = () => {
           path="doctor/calendar"
           element={
             <RoleRoute allowedRoles={[ROLES.DOCTOR]}>
-              <PlaceholderPage title="Lịch cá nhân" category="Bác sĩ" />
+              <PlaceholderPage title="Lịch chăm sóc cá nhân" category="Chuyên viên" />
             </RoleRoute>
           }
         />
@@ -238,7 +238,7 @@ export const AppRoutes = () => {
           path="doctor/shifts"
           element={
             <RoleRoute allowedRoles={[ROLES.DOCTOR]}>
-              <PlaceholderPage title="Ca khám & phiên trực" category="Bác sĩ" />
+              <PlaceholderPage title="Ca làm việc & lịch grooming" category="Chuyên viên" />
             </RoleRoute>
           }
         />
@@ -246,7 +246,7 @@ export const AppRoutes = () => {
           path="doctor/block-time"
           element={
             <RoleRoute allowedRoles={[ROLES.DOCTOR]}>
-              <PlaceholderPage title="Quản lý Block Time" category="Bác sĩ" />
+              <PlaceholderPage title="Quản lý giờ nghỉ" category="Chuyên viên" />
             </RoleRoute>
           }
         />
@@ -254,7 +254,7 @@ export const AppRoutes = () => {
           path="doctor/clinical-notes"
           element={
             <RoleRoute allowedRoles={[ROLES.DOCTOR]}>
-              <PlaceholderPage title="Ghi chú ca khám" category="Bác sĩ" />
+              <PlaceholderPage title="Ghi chú chăm sóc thú cưng" category="Chuyên viên" />
             </RoleRoute>
           }
         />
@@ -374,7 +374,7 @@ export const AppRoutes = () => {
           path="manager/staff"
           element={
             <RoleRoute allowedRoles={[ROLES.CLINIC_MANAGER]}>
-              <PlaceholderPage title="Bác sĩ & Nhân viên" category="Vận hành" />
+              <PlaceholderPage title="Đội ngũ chăm sóc" category="Vận hành cửa hàng" />
             </RoleRoute>
           }
         />
@@ -382,7 +382,7 @@ export const AppRoutes = () => {
           path="manager/services"
           element={
             <RoleRoute allowedRoles={[ROLES.CLINIC_MANAGER]}>
-              <PlaceholderPage title="Dịch vụ phòng khám" category="Vận hành" />
+              <PlaceholderPage title="Dịch vụ Spa & Grooming" category="Vận hành cửa hàng" />
             </RoleRoute>
           }
         />
@@ -414,7 +414,7 @@ export const AppRoutes = () => {
           path="manager/reports"
           element={
             <RoleRoute allowedRoles={[ROLES.CLINIC_MANAGER]}>
-              <PlaceholderPage title="Báo cáo vận hành phòng khám" category="Vận hành" />
+              <PlaceholderPage title="Báo cáo vận hành cửa hàng" category="Vận hành cửa hàng" />
             </RoleRoute>
           }
         />

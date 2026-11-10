@@ -43,12 +43,22 @@ const userSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      default: 'Bệnh nhân',
+      default: 'Khách hàng',
     },
     patientCode: {
       type: String,
       unique: true,
       sparse: true,
+    },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Owner',
+      index: true,
+    },
+    ownerLinkStatus: {
+      type: String,
+      enum: ['UNLINKED', 'PENDING', 'LINKED'],
+      default: 'UNLINKED',
     },
     dateOfBirth: {
       type: String,

@@ -6,18 +6,12 @@ import {
   CalendarDays,
   Clock,
   MapPin,
-  CheckCircle,
-  FileText,
   Heart,
-  ChevronRight,
   Scissors,
-  Smile,
-  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
 import { familyMemberService } from '../../services/familyMemberService';
-import { MOCK_APPOINTMENTS } from '../../data/mockData';
 import {
   Breadcrumb,
   Button,
@@ -29,7 +23,6 @@ import {
   StatCard,
   StatusBadge,
   Tabs,
-  Badge,
 } from '../../components/common';
 
 export const PatientDashboard = () => {
@@ -37,46 +30,45 @@ export const PatientDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
-  const [petsCount, setPetsCount] = useState(3);
+  const [petsCount, setPetsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        // Tải lịch hẹn từ MongoDB
-        const aptRes = await appointmentService.getMyAppointments();
-        if (aptRes && aptRes.data && aptRes.data.length > 0) {
-          setAppointments(aptRes.data);
-        } else {
-          setAppointments(MOCK_APPOINTMENTS);
-        }
-      } catch (err) {
-        console.warn('Dùng dữ liệu lịch hẹn dự phòng:', err.message);
-        setAppointments(MOCK_APPOINTMENTS);
+      if (currentUser?.ownerLinkStatus === 'PENDING') {
+        setAppointments([]);
+        setPetsCount(0);
+        setIsLoading(false);
+        return;
       }
 
+      setLoadError('');
+      setIsLoading(true);
       try {
-        // Tải danh sách thú cưng từ MongoDB
-        const fmRes = await familyMemberService.getFamilyMembers();
-        if (fmRes && fmRes.data) {
-          setPetsCount(fmRes.data.length);
-        }
+        const [aptRes, fmRes] = await Promise.all([
+          appointmentService.getMyAppointments(),
+          familyMemberService.getFamilyMembers(),
+        ]);
+        setAppointments(aptRes?.data || []);
+        setPetsCount(fmRes?.data?.length || 0);
       } catch (err) {
-        // fallback
+        setLoadError(err.message || 'Không thể tải dữ liệu khách hàng.');
+        setAppointments([]);
+        setPetsCount(0);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [currentUser?.id, currentUser?.ownerLinkStatus]);
 
   const upcomingList = appointments.filter(
-    (a) => a.status === 'CONFIRMED' || a.status === 'WAITING' || a.status === 'IN_PROGRESS'
+    (a) => ['REQUESTED', 'AWAITING_DEPOSIT', 'PENDING', 'CONFIRMED', 'WAITING', 'IN_PROGRESS'].includes(a.status)
   );
   const completedList = appointments.filter((a) => a.status === 'COMPLETED');
-  const cancelledList = appointments.filter((a) => a.status === 'CANCELLED' || a.status === 'NO_SHOW');
+  const cancelledList = appointments.filter((a) => ['CANCELLED', 'CANCELLED_EARLY', 'CANCELLED_LATE', 'NO_SHOW', 'REJECTED'].includes(a.status));
 
   const filterTabs = [
     { id: 'upcoming', label: 'Lịch Spa sắp tới', count: upcomingList.length },
@@ -89,13 +81,25 @@ export const PatientDashboard = () => {
       {/* Breadcrumb */}
       <Breadcrumb items={[{ label: 'Tổng quan dịch vụ Thú Cưng' }]} />
 
+      {currentUser?.ownerLinkStatus === 'PENDING' && (
+        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Tài khoản đang chờ cửa hàng xác minh và liên kết hồ sơ chủ thú cưng. Bạn có thể cập nhật thông tin tài khoản; hồ sơ thú cưng và lịch hẹn sẽ mở sau khi được duyệt.
+        </div>
+      )}
+      {loadError && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          {loadError}
+        </div>
+      )}
+      {isLoading && <p role="status" className="text-sm text-slate-500">Đang tải lịch hẹn và hồ sơ thú cưng...</p>}
+
       {/* 1. Pet Care Welcome Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-primary-600 p-6 sm:p-8 text-white shadow-elevated">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm mb-3">
             <span>🐾 PawCare Pet Spa & Grooming Studio</span>
             <span className="text-amber-200">•</span>
-            <span>Mã khách hàng: {currentUser?.patientCode || 'PAW-VIP-0892'}</span>
+            <span>Mã khách hàng: {currentUser?.patientCode || 'Chưa cập nhật'}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -262,9 +266,9 @@ export const PatientDashboard = () => {
                           </span>
                         </div>
 
-                        {apt.symptoms && (
+                        {(apt.careNotes || apt.symptoms) && (
                           <p className="mt-2 text-[11px] text-amber-900/80 bg-white/70 px-2.5 py-1 rounded-md border border-amber-100 inline-block">
-                            Lưu ý: {apt.symptoms}
+                            Lưu ý: {apt.careNotes || apt.symptoms}
                           </p>
                         )}
                       </div>

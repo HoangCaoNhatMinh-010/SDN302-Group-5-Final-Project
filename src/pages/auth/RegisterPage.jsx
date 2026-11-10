@@ -10,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowRight,
-  ShieldCheck,
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -120,19 +119,21 @@ export const RegisterPage = () => {
                 <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
                   <CheckCircle className="w-9 h-9" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Đăng ký thành công!</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {successInfo.user.ownerLinkStatus === 'PENDING' ? 'Tài khoản đang chờ xác minh' : 'Đăng ký thành công!'}
+                </h3>
                 <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                  Tài khoản của bạn đã được khởi tạo trong môi trường mô phỏng với vai trò{' '}
-                  <span className="font-semibold text-primary-700">Bệnh nhân</span>. Mã bệnh nhân dự kiến:{' '}
-                  <span className="font-mono font-bold text-slate-800">{successInfo.user.patientCode}</span>.
+                  {successInfo.message}
                 </p>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-500 text-left space-y-1">
                   <div>• Họ tên: <span className="font-medium text-slate-800">{successInfo.user.name}</span></div>
                   <div>• Email: <span className="font-medium text-slate-800">{successInfo.user.email}</span></div>
                   <div>• Số điện thoại: <span className="font-medium text-slate-800">{successInfo.user.phone}</span></div>
-                  <div className="pt-1 text-[11px] text-amber-700">
-                    * Lưu ý: Đây là hệ thống thử nghiệm mô phỏng frontend (Mock mode), dữ liệu chưa lưu vào cơ sở dữ liệu thật.
-                  </div>
+                  {successInfo.user.ownerLinkStatus === 'PENDING' && (
+                    <div className="pt-1 text-[11px] text-amber-700">
+                      Tính năng hồ sơ thú cưng và đặt lịch sẽ mở sau khi cửa hàng xác minh và liên kết hồ sơ.
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3">
@@ -270,7 +271,7 @@ export const RegisterPage = () => {
                       <span className="text-primary-600 hover:underline">Điều khoản dịch vụ</span>{' '}
                       và{' '}
                       <span className="text-primary-600 hover:underline">Chính sách quyền riêng tư</span>{' '}
-                      của phòng khám MedCare Plus.
+                      của PawCare Studio.
                     </span>
                   </label>
                   {errors.agreeTerms && (
@@ -297,7 +298,7 @@ export const RegisterPage = () => {
 
         {/* Link back to login */}
         <p className="mt-5 text-center text-xs text-slate-600">
-          Đã có tài khoản khám bệnh?{' '}
+          Đã có tài khoản PawCare?{' '}
           <Link
             to="/login"
             className="font-semibold text-primary-600 hover:text-primary-800 transition-colors hover:underline"

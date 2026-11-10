@@ -10,24 +10,39 @@ export const ROLES = {
 // Vietnamese display names for Pet Care Store
 export const ROLE_LABELS = {
   [ROLES.PATIENT]: 'Khách hàng (Chủ thú cưng)',
-  [ROLES.RECEPTIONIST]: 'Thu ngân & Tiếp đón Cửa hàng',
-  [ROLES.DOCTOR]: 'Chuyên viên Groomer & Thú y',
+  [ROLES.RECEPTIONIST]: 'Nhân viên tiếp đón',
+  [ROLES.DOCTOR]: 'Chuyên viên Spa & Grooming',
   [ROLES.ADMIN]: 'Quản trị viên hệ thống',
-  [ROLES.CLINIC_MANAGER]: 'Quản lý Cửa hàng Thú cưng',
+  [ROLES.CLINIC_MANAGER]: 'Chủ cửa hàng / Quản lý',
 };
 
 // Appointment & Queue Statuses for Pet Care
 export const APPOINTMENT_STATUS = {
+  REQUESTED: 'REQUESTED',
+  AWAITING_DEPOSIT: 'AWAITING_DEPOSIT',
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
   WAITING: 'WAITING',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
+  CANCELLED_EARLY: 'CANCELLED_EARLY',
+  CANCELLED_LATE: 'CANCELLED_LATE',
+  REJECTED: 'REJECTED',
   NO_SHOW: 'NO_SHOW',
 };
 
 export const STATUS_CONFIG = {
+  [APPOINTMENT_STATUS.REQUESTED]: {
+    label: 'Chờ cửa hàng xác nhận',
+    variant: 'warning',
+    color: 'text-amber-700 bg-amber-50 border-amber-200',
+  },
+  [APPOINTMENT_STATUS.AWAITING_DEPOSIT]: {
+    label: 'Chờ thanh toán tiền cọc',
+    variant: 'warning',
+    color: 'text-orange-700 bg-orange-50 border-orange-200',
+  },
   [APPOINTMENT_STATUS.PENDING]: {
     label: 'Chờ xác nhận',
     variant: 'warning',
@@ -55,6 +70,21 @@ export const STATUS_CONFIG = {
   },
   [APPOINTMENT_STATUS.CANCELLED]: {
     label: 'Đã hủy lịch',
+    variant: 'danger',
+    color: 'text-rose-700 bg-rose-50 border-rose-200',
+  },
+  [APPOINTMENT_STATUS.CANCELLED_EARLY]: {
+    label: 'Đã hủy trước hạn',
+    variant: 'danger',
+    color: 'text-rose-700 bg-rose-50 border-rose-200',
+  },
+  [APPOINTMENT_STATUS.CANCELLED_LATE]: {
+    label: 'Đã hủy trễ',
+    variant: 'danger',
+    color: 'text-rose-700 bg-rose-50 border-rose-200',
+  },
+  [APPOINTMENT_STATUS.REJECTED]: {
+    label: 'Cửa hàng từ chối',
     variant: 'danger',
     color: 'text-rose-700 bg-rose-50 border-rose-200',
   },

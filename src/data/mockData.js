@@ -66,7 +66,7 @@ export const NAV_ITEMS_BY_ROLE = {
     { label: 'Đặt lịch chăm sóc', path: '/patient/book-appointment', icon: 'CalendarPlus' },
     { label: 'Thú cưng của tôi', path: '/patient/family', icon: 'Heart' },
     { label: 'Dịch vụ Spa & Grooming', path: '/patient/specialties', icon: 'Sparkles' },
-    { label: 'Chuyên viên & Thú y', path: '/patient/doctors', icon: 'Users' },
+    { label: 'Đội ngũ Spa & Grooming', path: '/patient/doctors', icon: 'Users' },
     { label: 'Lịch trống tiệm', path: '/patient/available-slots', icon: 'Clock' },
     { label: 'Lịch hẹn của bé', path: '/patient/appointments', icon: 'CalendarDays', badge: 3 },
     { label: 'Hồ sơ chủ nuôi', path: '/profile', icon: 'UserCircle' },
@@ -91,9 +91,9 @@ export const NAV_ITEMS_BY_ROLE = {
   [ROLES.ADMIN]: [
     { label: 'Tổng quan', path: '/admin/dashboard', icon: 'LayoutDashboard' },
     { label: 'Người dùng hệ thống', path: '/admin/users', icon: 'Users' },
-    { label: 'Chuyên viên & Bác sĩ', path: '/admin/doctors', icon: 'Briefcase' },
+    { label: 'Đội ngũ chăm sóc', path: '/admin/doctors', icon: 'Briefcase' },
     { label: 'Báo cáo & Thống kê', path: '/admin/reports', icon: 'BarChart3' },
-    { label: 'Nhật ký (Audit Log)', path: '/admin/audit-logs', icon: 'History' },
+    { label: 'Nhật ký hoạt động', path: '/admin/audit-logs', icon: 'History' },
     { label: 'Cài đặt hệ thống', path: '/admin/settings', icon: 'Sliders' },
   ],
   [ROLES.CLINIC_MANAGER]: [
@@ -137,13 +137,13 @@ export const MOCK_APPOINTMENTS = [
     id: 'PET-2026-103',
     patientName: 'Nguyễn Văn Minh',
     petName: 'LuLu (Corgi)',
-    doctorName: 'Bác sĩ Thú Y Đức Hòa',
-    specialty: 'Khám sức khỏe & Tiêm phòng Thú y',
-    room: 'Phòng Thú Y Tiệm',
+    doctorName: 'Chuyên viên Đức Hòa',
+    specialty: 'Vệ sinh & chăm sóc móng',
+    room: 'Bàn Chăm Sóc 03',
     date: '18/11/2026',
     time: '10:00 - 10:30',
     status: 'CONFIRMED',
-    type: 'Tiêm nhắc vắc xin 7 bệnh',
+    type: 'Cắt móng và vệ sinh tai',
   },
 ];
 

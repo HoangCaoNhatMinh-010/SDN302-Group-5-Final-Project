@@ -13,7 +13,7 @@ export const DoctorScheduleCard = ({ doctor }) => {
           <div className="p-1.5 rounded-lg bg-sky-50 text-primary-600">
             <Calendar className="w-4 h-4" />
           </div>
-          <CardTitle className="text-sm">Phiên khám tiếp theo</CardTitle>
+          <CardTitle className="text-sm">Ca chăm sóc tiếp theo</CardTitle>
         </div>
         <Badge variant="success" size="sm" dot>
           Đang mở
@@ -25,11 +25,11 @@ export const DoctorScheduleCard = ({ doctor }) => {
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             Ca sáng (08:00 - 12:00)
           </span>
-          <span className="font-semibold text-primary-700">14 bệnh nhân</span>
+          <span className="font-semibold text-primary-700">14 lịch hẹn</span>
         </div>
         <p className="text-slate-500 flex items-center gap-1.5">
           <MapPin className="w-3.5 h-3.5 text-slate-400" />
-          {doctor.room || 'Phòng khám 204 - Tầng 2'}
+          {doctor.room || 'Khu Spa & Grooming'}
         </p>
       </CardContent>
     </Card>

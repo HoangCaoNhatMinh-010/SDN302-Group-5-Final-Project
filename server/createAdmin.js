@@ -17,7 +17,7 @@ const createAdmin = async () => {
     throw new Error('ADMIN_PASSWORD phải có ít nhất 8 ký tự.');
   }
 
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medcare_db');
+  await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pawcare_db');
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new Error('Email đã tồn tại. Không tạo hoặc thay đổi tài khoản hiện có.');

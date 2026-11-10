@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Eye, EyeOff, Save, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { profileService } from '../../services/profileService';
@@ -129,7 +129,7 @@ export const ChangePasswordPage = () => {
                       setCurrentPassword(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="Nhập mật khẩu hiện tại (demo: 123456)"
+                    placeholder="Nhập mật khẩu hiện tại"
                     className="block w-full rounded-lg border border-slate-300 bg-white pl-10 pr-10 py-2 text-sm text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/20"
                   />
                   <button

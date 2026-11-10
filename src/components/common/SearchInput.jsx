@@ -5,7 +5,7 @@ export const SearchInput = ({
   value = '',
   onChange,
   onClear,
-  placeholder = 'Tìm kiếm bệnh nhân, bác sĩ, mã lịch hẹn...',
+  placeholder = 'Tìm kiếm khách hàng, thú cưng, chuyên viên, mã lịch hẹn...',
   className = '',
   size = 'md',
   ...props

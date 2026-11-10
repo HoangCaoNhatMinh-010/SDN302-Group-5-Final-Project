@@ -2,131 +2,143 @@ import mongoose from 'mongoose';
 import { Doctor } from '../models/Doctor.js';
 import { Specialty } from '../models/Specialty.js';
 import { Appointment } from '../models/Appointment.js';
+import { StaffShift } from '../models/StaffShift.js';
 
-/**
- * @desc   Lấy danh sách chuyên viên / bác sĩ thú y (hỗ trợ tìm kiếm và lọc chuyên môn)
- * @route  GET /api/v1/doctors
- * @access Public
- */
+const parseTimeRange = (time) => {
+  const match = typeof time === 'string'
+    ? time.match(/^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/)
+    : null;
+  if (!match) return null;
+  const startMinute = Number(match[1]) * 60 + Number(match[2]);
+  const endMinute = Number(match[3]) * 60 + Number(match[4]);
+  return endMinute > startMinute ? { startMinute, endMinute } : null;
+};
+
+const formatMinute = (minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+
+const getDateRange = (value) => {
+  if (typeof value !== 'string' || !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
+  const [day, month, year] = value.split('/').map(Number);
+  const start = new Date(Date.UTC(year, month - 1, day));
+  if (start.getUTCFullYear() !== year || start.getUTCMonth() !== month - 1 || start.getUTCDate() !== day) return null;
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
+};
+
+const activeStaffFilter = { role: 'GROOMER', is_active: true, deleted_at: null };
+const activeServiceFilter = {
+  category: 'grooming',
+  is_active: true,
+  deleted_at: null,
+  allow_online_booking: true,
+  requires_vet_license: false,
+};
+
 export const getAllDoctors = async (req, res) => {
   try {
-    const { specialty, search } = req.query;
-    let query = {};
-
-    if (specialty) {
-      query.specialty = new RegExp(specialty, 'i');
+    const filter = { ...activeStaffFilter };
+    if (typeof req.query.search === 'string' && req.query.search.trim()) {
+      filter.full_name = new RegExp(req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     }
-
-    if (search) {
-      query.name = new RegExp(search, 'i');
+    if (typeof req.query.specialty === 'string' && req.query.specialty.trim()) {
+      const service = await Specialty.findOne({
+        ...activeServiceFilter,
+        name: new RegExp(req.query.specialty.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+      });
+      if (!service) return res.status(200).json({ success: true, count: 0, data: [] });
+      filter.service_ids = service._id;
     }
-
-    const doctors = await Doctor.find(query);
-
-    return res.status(200).json({
-      success: true,
-      count: doctors.length,
-      data: doctors,
-    });
+    const doctors = await Doctor.find(filter).populate({
+      path: 'service_ids',
+      match: activeServiceFilter,
+    }).sort({ full_name: 1 });
+    const visibleDoctors = doctors.filter((doctor) => doctor.service_ids.length > 0);
+    return res.status(200).json({ success: true, count: visibleDoctors.length, data: visibleDoctors });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * @desc   Lấy chi tiết 1 chuyên viên / bác sĩ thú y
- * @route  GET /api/v1/doctors/:id
- * @access Public
- */
 export const getDoctorById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'ID chuyên viên không hợp lệ' });
     }
-
-    const doctor = await Doctor.findById(req.params.id);
-    if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên viên' });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: doctor,
+    const doctor = await Doctor.findOne({ _id: req.params.id, ...activeStaffFilter }).populate({
+      path: 'service_ids',
+      match: activeServiceFilter,
     });
+    if (!doctor || !doctor.service_ids.length) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên viên grooming đang hoạt động' });
+    }
+    return res.status(200).json({ success: true, data: doctor });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * @desc   Lấy danh sách các slot khám/spa khả dụng của chuyên viên theo ngày
- * @route  GET /api/v1/doctors/:id/available-slots
- * @access Public
- */
 export const getAvailableSlots = async (req, res) => {
   try {
-    const { date } = req.query; // DD/MM/YYYY
-    let doctor = null;
-
-    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
-      doctor = await Doctor.findById(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'ID chuyên viên không hợp lệ' });
     }
-    if (!doctor) {
-      doctor = await Doctor.findOne();
+    const dateRange = getDateRange(req.query.date);
+    if (!dateRange) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn ngày hợp lệ (DD/MM/YYYY)' });
     }
-    if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Chuyên viên không tồn tại' });
-    }
+    const doctor = await Doctor.findOne({ _id: req.params.id, ...activeStaffFilter });
+    if (!doctor) return res.status(404).json({ success: false, message: 'Chuyên viên grooming không tồn tại' });
 
-    // Tìm các lịch hẹn đã đặt của chuyên viên vào ngày này
-    const bookedAppointments = await Appointment.find({
-      doctorId: doctor._id,
-      date,
-      status: { $in: ['CONFIRMED', 'WAITING', 'IN_PROGRESS'] },
-    }).select('time');
+    const [shifts, bookedAppointments] = await Promise.all([
+      StaffShift.find({
+        staff_id: doctor._id,
+        work_date: { $gte: dateRange.start, $lt: dateRange.end },
+      }).sort({ start_time: 1 }),
+      Appointment.find({
+        staff_id: doctor._id,
+        appointment_date: { $gte: dateRange.start, $lt: dateRange.end },
+        status: { $in: ['REQUESTED', 'AWAITING_DEPOSIT', 'CONFIRMED', 'IN_PROGRESS', 'PENDING', 'WAITING'] },
+      }).select('start_time end_time'),
+    ]);
 
-    const bookedTimes = bookedAppointments.map((a) => a.time);
-
-    // Tính slot khả dụng
-    const slots = (doctor.timeSlots || [
-      '08:30 - 09:30',
-      '09:30 - 10:30',
-      '10:30 - 11:30',
-      '13:30 - 14:30',
-      '14:30 - 15:30',
-      '15:30 - 16:30',
-      '16:30 - 17:30',
-      '18:00 - 19:00',
-    ]).map((time) => ({
-      time,
-      isAvailable: !bookedTimes.includes(time),
-    }));
+    const duration = Number.parseInt(req.query.durationMinutes, 10);
+    const durationMinutes = Number.isInteger(duration) && duration > 0 ? duration : 60;
+    const shiftSlots = shifts
+      .filter((shift) => !shift.is_blocked)
+      .flatMap((shift) => {
+        const range = parseTimeRange(`${shift.start_time} - ${shift.end_time}`);
+        if (!range) return [];
+        const slots = [];
+        for (let startMinute = Math.ceil(range.startMinute / 30) * 30; startMinute + durationMinutes <= range.endMinute; startMinute += 30) {
+          const endMinute = startMinute + durationMinutes;
+          const hasOverlap = bookedAppointments.some((appointment) => {
+            const start = Number(appointment.start_time.slice(0, 2)) * 60 + Number(appointment.start_time.slice(3, 5));
+            const end = Number(appointment.end_time.slice(0, 2)) * 60 + Number(appointment.end_time.slice(3, 5));
+            return startMinute < end && endMinute > start;
+          });
+          slots.push({
+            time: `${formatMinute(startMinute)} - ${formatMinute(endMinute)}`,
+            isAvailable: !hasOverlap,
+          });
+        }
+        return slots;
+      });
 
     return res.status(200).json({
       success: true,
-      date: date || 'Hôm nay',
+      date: req.query.date,
       doctorId: doctor._id,
-      doctorName: doctor.name,
-      slots,
+      doctorName: doctor.full_name,
+      slots: shiftSlots,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * @desc   Lấy danh sách dịch vụ của cửa hàng thú cưng
- * @route  GET /api/v1/doctors/specialties hoặc /api/v1/specialties
- * @access Public
- */
 export const getAllSpecialties = async (req, res) => {
   try {
-    const specialties = await Specialty.find();
-    return res.status(200).json({
-      success: true,
-      count: specialties.length,
-      data: specialties,
-    });
+    const specialties = await Specialty.find(activeServiceFilter).sort({ display_order: 1, name: 1 });
+    return res.status(200).json({ success: true, count: specialties.length, data: specialties });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

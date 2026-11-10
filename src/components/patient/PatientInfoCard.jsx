@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Phone, MapPin, Calendar, HeartPulse } from 'lucide-react';
+import { Phone, MapPin, HeartPulse } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../common/Card';
 import { Avatar } from '../common/Avatar';
 import { Badge } from '../common/Badge';
@@ -10,9 +10,9 @@ export const PatientInfoCard = ({ patient }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Thông tin hồ sơ bệnh nhân</CardTitle>
+        <CardTitle className="text-sm">Thông tin khách hàng</CardTitle>
         <Badge variant="primary" size="sm">
-          {patient.patientCode || 'BN-2026'}
+          {patient.patientCode || 'PAW-2026'}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -21,7 +21,7 @@ export const PatientInfoCard = ({ patient }) => {
           <div>
             <h4 className="font-bold text-sm text-slate-900">{patient.name}</h4>
             <p className="text-xs text-slate-500">
-              {patient.gender || 'Nam'} • {patient.dateOfBirth || '15/08/1990'}
+              {patient.gender || 'Chưa cập nhật'} • {patient.dateOfBirth || 'Chưa cập nhật'}
             </p>
           </div>
         </div>
@@ -33,11 +33,11 @@ export const PatientInfoCard = ({ patient }) => {
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            <span>{patient.address || 'Quận 1, TP. Hồ Chí Minh'}</span>
+            <span>{patient.address || 'Chưa cập nhật'}</span>
           </div>
           <div className="flex items-center gap-2 text-primary-700 font-medium">
             <HeartPulse className="w-3.5 h-3.5 text-primary-600" />
-            <span>Nhóm máu: O+ • Tiền sử dị ứng: Không</span>
+            <span>Lưu ý chăm sóc: vui lòng xác nhận với chủ nuôi</span>
           </div>
         </div>
       </CardContent>

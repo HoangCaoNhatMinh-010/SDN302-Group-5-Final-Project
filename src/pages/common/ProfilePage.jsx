@@ -10,9 +10,7 @@ import {
   X,
   Edit3,
   KeyRound,
-  ShieldCheck,
   CheckCircle,
-  AlertCircle,
   Camera,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -63,9 +61,9 @@ export const ProfilePage = () => {
         name: currentUser.name || '',
         email: currentUser.email || '',
         phone: currentUser.phone || '',
-        dateOfBirth: currentUser.dateOfBirth || '15/08/1990',
+        dateOfBirth: currentUser.dateOfBirth || '',
         gender: currentUser.gender || 'Nam',
-        address: currentUser.address || 'Quận 1, TP. Hồ Chí Minh',
+        address: currentUser.address || '',
         avatar: currentUser.avatar || '',
       };
       setFormData(data);
@@ -241,7 +239,7 @@ export const ProfilePage = () => {
             <CardDescription>
               {isEditing
                 ? 'Đang ở chế độ chỉnh sửa. Thay đổi thông tin và nhấn Lưu thay đổi.'
-                : 'Thông tin cá nhân đã được lưu trên hệ thống phòng khám.'}
+                : 'Thông tin cá nhân đã được lưu trên hệ thống PawCare Studio.'}
             </CardDescription>
           </div>
         </CardHeader>

@@ -94,7 +94,7 @@ export const PetAvailableSlotsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Chọn Chuyên viên / Bác sĩ thú y:
+                Chọn chuyên viên chăm sóc:
               </label>
               <select
                 value={selectedGroomerId}
@@ -193,4 +193,3 @@ export const PetAvailableSlotsPage = () => {
     </div>
   );
 };
-

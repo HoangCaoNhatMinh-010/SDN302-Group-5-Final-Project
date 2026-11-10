@@ -4,24 +4,14 @@ import {
   Lock,
   Mail,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle,
-  User,
-  Stethoscope,
-  Headphones,
-  Sliders,
-  Building,
   Eye,
   EyeOff,
-  Smartphone,
-  KeyRound,
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { authService } from '../../services/authService';
 import { ROLES, ROLE_LABELS } from '../../utils/constants';
-import { DEMO_USERS } from '../../data/mockData';
 import { Button, Input, Card, CardContent } from '../../components/common';
 
 export const LoginPage = () => {
@@ -30,22 +20,12 @@ export const LoginPage = () => {
   const location = useLocation();
   const toast = useToast();
 
-  const [identifier, setIdentifier] = useState(DEMO_USERS[ROLES.PATIENT].email);
-  const [password, setPassword] = useState('123456');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [activeDemoRole, setActiveDemoRole] = useState(ROLES.PATIENT);
-
-  const roleIcons = {
-    [ROLES.PATIENT]: <User className="w-4 h-4 text-sky-600" />,
-    [ROLES.RECEPTIONIST]: <Headphones className="w-4 h-4 text-teal-600" />,
-    [ROLES.DOCTOR]: <Stethoscope className="w-4 h-4 text-blue-600" />,
-    [ROLES.ADMIN]: <Sliders className="w-4 h-4 text-purple-600" />,
-    [ROLES.CLINIC_MANAGER]: <Building className="w-4 h-4 text-amber-600" />,
-  };
-
   const getDashboardPath = (targetRole) => {
     switch (targetRole) {
       case ROLES.PATIENT:
@@ -60,42 +40,6 @@ export const LoginPage = () => {
         return '/manager/dashboard';
       default:
         return '/patient/dashboard';
-    }
-  };
-
-  // Quick switch filling form with demo credentials
-  const handleSelectDemoAccount = (r) => {
-    setActiveDemoRole(r);
-    setIdentifier(DEMO_USERS[r].email);
-    setPassword('123456');
-    setErrorMessage('');
-  };
-
-  // Direct 1-click Demo Login
-  const handleDirectDemoLogin = async (r) => {
-    if (r === ROLES.ADMIN) {
-      setErrorMessage('Đăng nhập admin cần tài khoản có thật trong cơ sở dữ liệu. Hãy dùng ADMIN_EMAIL và ADMIN_PASSWORD đã cấu hình cho máy chủ.');
-      return;
-    }
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      if (r === ROLES.PATIENT) {
-        const res = await authService.login(DEMO_USERS[ROLES.PATIENT].email, 'password123');
-        login(res.user);
-      } else {
-        login(r);
-      }
-      toast.success(`Đăng nhập thành công với vai trò: ${ROLE_LABELS[r]}`);
-      const destination = getDashboardPath(r);
-      navigate(destination, { replace: true });
-    } catch (err) {
-      // Fallback
-      login(r);
-      const destination = getDashboardPath(r);
-      navigate(destination, { replace: true });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -139,60 +83,6 @@ export const LoginPage = () => {
       <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-xl px-4 sm:px-0">
         <Card className="shadow-modal border-slate-200">
           <CardContent className="p-6 sm:p-8">
-            {/* 1. Clearly Labeled Demo Accounts Panel */}
-            <div className="mb-6 pb-5 border-b border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary-600" />
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Bảng tài khoản mẫu (Demo Login)
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400">Chọn để điền thông tin</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {Object.values(ROLES).map((r, index) => {
-                  const isSelected = activeDemoRole === r;
-                  const user = DEMO_USERS[r];
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => handleSelectDemoAccount(r)}
-                      onDoubleClick={() => handleDirectDemoLogin(r)}
-                      className={`
-                        flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all text-xs
-                        ${
-                          isSelected
-                            ? 'bg-primary-50/90 border-primary-500 ring-2 ring-primary-500/20 text-primary-900 font-semibold shadow-xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }
-                      `}
-                    >
-                      <div className="p-1 rounded-md bg-white border border-slate-200 shadow-xs flex-shrink-0">
-                        {roleIcons[r]}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold flex items-center gap-1">
-                          <span>{index + 1}. {ROLE_LABELS[r]}</span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate">{user.name}</div>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {activeDemoRole === ROLES.ADMIN && (
-                <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                  Tài khoản admin cần được tạo trong MongoDB bằng cấu hình ADMIN_EMAIL/ADMIN_PASSWORD; tài khoản demo không có quyền gọi API quản trị.
-                </p>
-              )}
-            </div>
-
             {/* Error Message */}
             {errorMessage && (
               <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs animate-in fade-in">
@@ -281,30 +171,15 @@ export const LoginPage = () => {
               </div>
             </form>
 
-            {/* Other Authentication Methods */}
-            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-between items-center text-xs">
-              <Link
-                to="/otp-login"
-                className="flex items-center gap-1.5 font-medium text-slate-600 hover:text-primary-600 transition-colors"
-              >
-                <Smartphone className="w-4 h-4 text-teal-600" />
-                <span>Đăng nhập nhanh qua OTP SMS</span>
-              </Link>
-
-              <Link
-                to="/staff-2fa"
-                className="flex items-center gap-1.5 font-medium text-slate-600 hover:text-primary-600 transition-colors"
-              >
-                <KeyRound className="w-4 h-4 text-indigo-600" />
-                <span>Cổng xác thực 2FA cho Nhân viên</span>
-              </Link>
-            </div>
+            <p className="mt-5 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
+              Đăng nhập OTP/SMS và 2FA sẽ khả dụng sau khi cửa hàng cấu hình nhà cung cấp xác minh.
+            </p>
           </CardContent>
         </Card>
 
         {/* Register Prompt */}
         <p className="mt-5 text-center text-xs text-slate-600">
-          Chưa có tài khoản Bệnh nhân?{' '}
+          Chưa có tài khoản khách hàng PawCare?{' '}
           <Link
             to="/register"
             className="font-semibold text-primary-600 hover:text-primary-800 transition-colors hover:underline"
@@ -315,7 +190,7 @@ export const LoginPage = () => {
 
         {/* Footer info */}
         <p className="mt-4 text-center text-[11px] text-slate-400">
-          MedCare Plus Clinic System &copy; 2026. Môi trường kiểm thử Frontend (Mock Services).
+          PawCare Studio &copy; 2026. Hệ thống đặt lịch chăm sóc thú cưng.
         </p>
       </div>
     </div>

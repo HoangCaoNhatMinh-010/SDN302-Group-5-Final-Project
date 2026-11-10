@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
-import { ROLES } from '../../utils/constants';
 import {
   Breadcrumb,
   Button,
@@ -49,11 +48,9 @@ export const AdminDashboard = () => {
     };
   }, []);
 
-  const userCounts = summary?.usersByRole || [];
-  const staffCount = userCounts
-    .filter((item) => item._id !== ROLES.PATIENT && item._id !== ROLES.ADMIN)
+  const staffCount = (summary?.staffByRole || [])
     .reduce((total, item) => total + item.count, 0);
-  const totalUsers = userCounts.reduce((total, item) => total + item.count, 0);
+  const ownerCount = summary?.ownerCount || 0;
   const auditEvents = summary?.recentAuditLogs || [];
 
   return (
@@ -73,7 +70,7 @@ export const AdminDashboard = () => {
               Quản trị hệ thống
             </h1>
             <p className="mt-1 text-sm text-slate-300 max-w-xl">
-              Cổng quản trị trung tâm dành cho {currentUser?.name || 'Admin Hệ Thống'}. Quản lý danh mục nhân viên, bác sĩ, cấu hình slot khám, phân quyền RBAC và giám sát kiểm toán hệ thống.
+              Cổng quản trị PawCare Studio dành cho {currentUser?.name || 'Quản trị viên'}. Quản lý khách hàng, đội ngũ chăm sóc, dịch vụ, khung giờ đặt lịch và hoạt động hệ thống.
             </p>
           </div>
 
@@ -85,7 +82,7 @@ export const AdminDashboard = () => {
               onClick={() => navigate('/admin/staff')}
               className="bg-white text-slate-900 hover:bg-slate-100 border-0 shadow-sm"
             >
-              Bác sĩ & Nhân viên
+              Đội ngũ chăm sóc & Nhân viên
             </Button>
             <Button
               variant="outline"
@@ -118,20 +115,20 @@ export const AdminDashboard = () => {
       {/* 2. Admin Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Bác sĩ & nhân viên"
+          title="Nhân viên & chuyên viên"
           value={summary ? staffCount : '—'}
-          trend={summary ? `${totalUsers} tài khoản` : 'Đang tải'}
+          trend={summary ? `${ownerCount} chủ thú cưng` : 'Đang tải'}
           trendType="neutral"
-          trendLabel="Không tính bệnh nhân và admin"
+          trendLabel="Nhân viên đang hoạt động"
           icon={<Users className="w-5 h-5 text-indigo-600" />}
           iconColor="bg-indigo-50 text-indigo-600"
         />
         <StatCard
-          title="Dịch vụ y tế"
+          title="Dịch vụ chăm sóc"
           value={summary ? summary.specialtyCount : '—'}
           trend={summary ? 'Đã lưu' : 'Đang tải'}
           trendType="neutral"
-          trendLabel="Chuyên khoa / dịch vụ"
+          trendLabel="Gói Spa & Grooming"
           icon={<Briefcase className="w-5 h-5 text-sky-600" />}
           iconColor="bg-sky-50 text-sky-600"
         />
