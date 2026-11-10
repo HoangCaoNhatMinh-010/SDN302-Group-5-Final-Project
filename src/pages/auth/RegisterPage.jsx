@@ -86,7 +86,7 @@ export const RegisterPage = () => {
     try {
       const res = await authService.register(formData);
       setSuccessInfo(res);
-      toast.success('Đăng ký tài khoản Bệnh nhân thành công!');
+      toast.success('Đăng ký tài khoản Khách hàng thành công! 🐾');
     } catch (err) {
       setErrors({ form: err.message || 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.' });
     } finally {
@@ -97,24 +97,18 @@ export const RegisterPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-slate-100 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Clinic Logo */}
+        {/* Pet Care Logo */}
         <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-secondary-600 text-white shadow-lg shadow-primary-500/25 transition-transform group-hover:scale-105">
-            <svg
-              className="w-7 h-7 fill-current"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-            </svg>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-rose-500 to-primary-600 text-white shadow-lg shadow-amber-500/25 transition-transform group-hover:scale-105 text-2xl">
+            🐾
           </div>
         </Link>
 
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-          Đăng ký tài khoản Bệnh nhân
+          Đăng ký Tài khoản Khách hàng
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Tạo tài khoản để chủ động đặt lịch khám và quản lý hồ sơ y tế gia đình
+          Tạo tài khoản để đặt lịch spa, làm đẹp và theo dõi hồ sơ các bé thú cưng
         </p>
       </div>
 

@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Users,
-  UserPlus,
+  Heart,
+  Plus,
   Edit2,
   Trash2,
-  Heart,
-  Phone,
   Calendar,
-  MapPin,
-  FileText,
+  Sparkles,
   AlertCircle,
   Eye,
   CheckCircle2,
   Shield,
-  User,
+  Tag,
+  Scale,
+  CalendarPlus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -29,7 +29,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  Avatar,
   Badge,
   Modal,
   Dialog,
@@ -37,17 +36,20 @@ import {
   LoadingState,
 } from '../../components/common';
 
-const RELATIONSHIP_OPTIONS = [
-  { value: 'Bố', label: 'Bố (Cha)' },
-  { value: 'Mẹ', label: 'Mẹ' },
-  { value: 'Vợ/chồng', label: 'Vợ / Chồng' },
-  { value: 'Con', label: 'Con (Trai / Gái)' },
-  { value: 'Anh/chị/em', label: 'Anh / Chị / Em' },
-  { value: 'Người thân khác', label: 'Người thân khác' },
+const PET_TYPE_OPTIONS = [
+  { value: 'Chó', label: '🐶 Chó' },
+  { value: 'Mèo', label: '🐱 Mèo' },
+  { value: 'Khác', label: '🐰 Thú cưng khác' },
+];
+
+const GENDER_OPTIONS = [
+  { value: 'Đực', label: 'Đực' },
+  { value: 'Cái', label: 'Cái' },
 ];
 
 export const FamilyMembersPage = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [members, setMembers] = useState([]);
@@ -58,16 +60,19 @@ export const FamilyMembersPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Selected Member for Edit / View / Delete
+  // Selected Pet for Edit / View / Delete
   const [selectedMember, setSelectedMember] = useState(null);
   const [formMode, setFormMode] = useState('add'); // 'add' | 'edit'
 
   // Form Fields
   const [formData, setFormData] = useState({
     name: '',
-    relationship: 'Bố',
+    relationship: 'Chó',
+    petType: 'Chó',
+    breed: '',
+    weight: '3.5',
     dateOfBirth: '',
-    gender: 'Nam',
+    gender: 'Đực',
     phone: '',
     address: '',
     idCard: '',
@@ -76,14 +81,14 @@ export const FamilyMembersPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load family members on mount
+  // Load pets on mount
   const loadMembers = async () => {
     setIsLoading(true);
     try {
-      const res = await familyMemberService.getFamilyMembers(currentUser?.id);
+      const res = await familyMemberService.getFamilyMembers();
       setMembers(res.data || []);
     } catch (err) {
-      toast.error('Không thể tải danh sách người thân.');
+      toast.error('Không thể tải danh sách thú cưng.');
     } finally {
       setIsLoading(false);
     }
@@ -99,12 +104,15 @@ export const FamilyMembersPage = () => {
     setSelectedMember(null);
     setFormData({
       name: '',
-      relationship: 'Bố',
+      relationship: 'Chó',
+      petType: 'Chó',
+      breed: '',
+      weight: '3.5',
       dateOfBirth: '',
-      gender: 'Nam',
-      phone: '',
+      gender: 'Đực',
+      phone: currentUser?.phone || '',
       address: currentUser?.address || '',
-      idCard: '',
+      idCard: `TAG-${Math.floor(1000 + Math.random() * 9000)}`,
       note: '',
     });
     setFormErrors({});
@@ -117,10 +125,13 @@ export const FamilyMembersPage = () => {
     setSelectedMember(member);
     setFormData({
       name: member.name || '',
-      relationship: member.relationship || 'Bố',
+      relationship: member.relationship || member.petType || 'Chó',
+      petType: member.petType || member.relationship || 'Chó',
+      breed: member.breed || '',
+      weight: member.weight ? member.weight.toString() : '3.5',
       dateOfBirth: member.dateOfBirth || '',
-      gender: member.gender || 'Nam',
-      phone: member.phone || '',
+      gender: member.gender || 'Đực',
+      phone: member.phone || currentUser?.phone || '',
       address: member.address || '',
       idCard: member.idCard || '',
       note: member.note || '',
@@ -129,7 +140,7 @@ export const FamilyMembersPage = () => {
     setIsFormModalOpen(true);
   };
 
-  // Open Detail Modal
+  // Open View Details
   const handleOpenDetailModal = (member) => {
     setSelectedMember(member);
     setIsDetailModalOpen(true);
@@ -141,385 +152,421 @@ export const FamilyMembersPage = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  // Form Validation
+  // Validate Form
   const validateForm = () => {
-    const errs = {};
-    if (!formData.name.trim()) errs.name = 'Vui lòng nhập họ và tên';
-    if (!formData.relationship) errs.relationship = 'Vui lòng chọn mối quan hệ';
-    if (!formData.dateOfBirth.trim()) errs.dateOfBirth = 'Vui lòng nhập ngày sinh';
-    if (!formData.gender) errs.gender = 'Vui lòng chọn giới tính';
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    const errors = {};
+    if (!formData.name.trim()) {
+      errors.name = 'Vui lòng nhập tên bé thú cưng';
+    }
+    if (!formData.dateOfBirth.trim()) {
+      errors.dateOfBirth = 'Vui lòng nhập ngày sinh hoặc tuổi của bé';
+    }
+    if (!formData.breed.trim()) {
+      errors.breed = 'Vui lòng nhập giống loài (VD: Poodle, Corgi, Mèo Anh lông ngắn...)';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  // Handle Form Submit (Add or Edit)
-  const handleFormSubmit = async (e) => {
+  // Submit Add / Edit
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
+      const payload = {
+        name: formData.name.trim(),
+        relationship: formData.petType,
+        petType: formData.petType,
+        breed: formData.breed.trim(),
+        weight: parseFloat(formData.weight) || 3.5,
+        dateOfBirth: formData.dateOfBirth.trim(),
+        gender: formData.gender,
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+        idCard: formData.idCard.trim(),
+        note: formData.note.trim(),
+      };
+
       if (formMode === 'add') {
-        const res = await familyMemberService.createFamilyMember(formData, currentUser?.id);
-        toast.success(res.message);
+        const res = await familyMemberService.createFamilyMember(payload);
+        toast.success(res.message || 'Thêm hồ sơ bé cưng thành công!');
       } else {
-        const res = await familyMemberService.updateFamilyMember(selectedMember.id, formData);
-        toast.success(res.message);
+        const res = await familyMemberService.updateFamilyMember(selectedMember.id, payload);
+        toast.success(res.message || 'Cập nhật hồ sơ bé cưng thành công!');
       }
+
       setIsFormModalOpen(false);
       await loadMembers();
     } catch (err) {
-      toast.error(err.message || 'Thao tác không thành công.');
+      toast.error(err.message || 'Có lỗi xảy ra khi lưu thông tin thú cưng.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Confirm Delete
+  // Confirm Delete
   const handleConfirmDelete = async () => {
     if (!selectedMember) return;
-    setIsSubmitting(true);
     try {
       const res = await familyMemberService.deleteFamilyMember(selectedMember.id);
-      toast.success(res.message);
+      toast.success(res.message || 'Đã xóa hồ sơ bé thú cưng thành công!');
       setIsDeleteDialogOpen(false);
-      setSelectedMember(null);
       await loadMembers();
     } catch (err) {
-      toast.error(err.message || 'Không thể xóa hồ sơ người thân.');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(err.message || 'Không thể xóa hồ sơ bé thú cưng.');
     }
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Quản lý người thân' }]} />
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: 'Trang chủ', path: '/patient/dashboard' },
+          { label: 'Hồ sơ Thú cưng của tôi' },
+        ]}
+      />
 
-      {/* Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-primary-600 p-6 text-white shadow-elevated">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý người thân</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Khai báo và liên kết hồ sơ người thân để đặt lịch khám hộ và theo dõi sức khỏe gia đình
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm mb-2">
+            <span>🐾 PawCare Pet Profiles</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Hồ sơ Thú cưng của tôi</h1>
+          <p className="mt-1 text-sm text-rose-50 max-w-xl">
+            Lưu trữ thông tin chi tiết các bé chó mèo, cân nặng, thói quen và lịch tiêm phòng để chuyên viên chăm sóc chu đáo nhất khi đến tiệm.
           </p>
         </div>
-        <div>
-          <Button
-            variant="primary"
-            size="md"
-            leftIcon={<UserPlus className="w-4 h-4" />}
-            onClick={handleOpenAddModal}
-          >
-            Thêm hồ sơ người thân
-          </Button>
-        </div>
+        <Button
+          variant="light"
+          size="md"
+          leftIcon={<Plus className="w-4 h-4 text-rose-600" />}
+          onClick={handleOpenAddModal}
+          className="bg-white text-rose-700 hover:bg-rose-50 border-0 shadow-sm self-start sm:self-auto flex-shrink-0"
+        >
+          Thêm bé cưng mới
+        </Button>
       </div>
 
-      {/* 1. Account Owner Badge Card (Clearly distinguish Account Owner vs Family) */}
-      <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar
-            src={currentUser?.avatar}
-            name={currentUser?.name}
-            size="lg"
-            status="online"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">{currentUser?.name}</h3>
-              <Badge variant="primary" size="sm">
-                Chủ tài khoản
-              </Badge>
-            </div>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Mã hồ sơ gốc: <span className="font-mono font-semibold">{currentUser?.patientCode || 'BN-2026-0892'}</span> • {currentUser?.phone}
-            </p>
-          </div>
-        </div>
-
-        <div className="text-xs text-slate-500 bg-white/80 rounded-lg p-2.5 border border-sky-100 sm:text-right">
-          <span>Người đại diện hợp pháp quản lý lịch khám gia đình</span>
-        </div>
-      </div>
-
-      {/* 2. Family Members List / Cards */}
+      {/* Pet Cards List */}
       {isLoading ? (
-        <LoadingState message="Đang tải danh sách người thân..." />
+        <LoadingState text="Đang tải danh sách thú cưng..." />
       ) : members.length === 0 ? (
         <EmptyState
-          icon={<Users className="w-8 h-8 text-primary-500" />}
-          title="Chưa có hồ sơ người thân"
-          description="Bạn chưa liên kết hồ sơ người thân nào. Hãy thêm hồ sơ để có thể đặt lịch khám bệnh hộ cho bố, mẹ, con cái hoặc người thân trong gia đình."
-          actionLabel="Thêm người thân ngay"
+          icon={Heart}
+          title="Bạn chưa đăng ký bé thú cưng nào"
+          description="Hãy thêm thông tin các bé cún, mèo của bạn để dễ dàng đặt lịch tắm spa, cắt tỉa và theo dõi lịch chăm sóc tại PawCare Studio."
+          actionLabel="Thêm bé cưng ngay"
           onAction={handleOpenAddModal}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {members.map((member) => (
-            <Card key={member.id} hover className="flex flex-col justify-between overflow-hidden">
-              <CardContent className="p-5">
-                {/* Header of Card */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-teal-50 text-teal-700 font-bold border border-teal-200 flex items-center justify-center text-sm shadow-xs">
-                      {member.name.charAt(0)}
+          {members.map((pet) => {
+            const isCat = pet.petType === 'Mèo' || pet.relationship === 'Mèo';
+            return (
+              <Card
+                key={pet.id}
+                className="group hover:shadow-lg transition-all duration-200 border-slate-200/80 overflow-hidden flex flex-col justify-between"
+              >
+                <div>
+                  <div className="p-5 pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-100/70 border border-amber-200 flex items-center justify-center text-3xl shadow-xs">
+                          {isCat ? '🐱' : '🐶'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-slate-900 text-base group-hover:text-primary-700 transition-colors">
+                              {pet.name}
+                            </h3>
+                            <Badge
+                              variant={isCat ? 'primary' : 'warning'}
+                              size="sm"
+                              className="font-medium text-[11px]"
+                            >
+                              {pet.petType || pet.relationship || 'Chó'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">
+                            {pet.breed || 'Chưa cập nhật giống loài'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(pet)}
+                          className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-slate-100 rounded-lg transition-colors"
+                          title="Sửa thông tin"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDeleteDialog(pet)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Xóa hồ sơ"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1">
-                        {member.name}
-                      </h4>
-                      <Badge variant="secondary" size="sm" className="mt-1">
-                        {member.relationship}
-                      </Badge>
+
+                    {/* Quick Stats Grid */}
+                    <div className="mt-4 grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold block uppercase">Giới tính</span>
+                        <span className="text-xs font-bold text-slate-700">{pet.gender || 'Đực'}</span>
+                      </div>
+                      <div className="border-x border-slate-200">
+                        <span className="text-[10px] text-slate-400 font-semibold block uppercase">Cân nặng</span>
+                        <span className="text-xs font-bold text-slate-700">{pet.weight || '3.5'} kg</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold block uppercase">Tuổi/Ngày sinh</span>
+                        <span className="text-xs font-bold text-slate-700 truncate block">{pet.dateOfBirth || '--'}</span>
+                      </div>
                     </div>
+
+                    {/* Tag / Microchip */}
+                    {pet.idCard && (
+                      <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                        <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <span>Mã vòng cổ / Tag: <span className="font-semibold text-slate-700">{pet.idCard}</span></span>
+                      </div>
+                    )}
+
+                    {/* Note */}
+                    {pet.note && (
+                      <div className="mt-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 p-2 text-xs text-amber-900 leading-relaxed">
+                        <span className="font-semibold">Lưu ý khi chăm sóc:</span> {pet.note}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Details list */}
-                <div className="mt-4 pt-3 border-t border-slate-100 text-xs space-y-2 text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span>
-                      {member.dateOfBirth} ({member.gender})
-                    </span>
-                  </div>
-
-                  {member.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span>{member.phone}</span>
-                    </div>
-                  )}
-
-                  {member.address && (
-                    <div className="flex items-center gap-2 line-clamp-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">{member.address}</span>
-                    </div>
-                  )}
-
-                  {member.note && (
-                    <div className="p-2 rounded bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900 mt-2">
-                      <span className="font-semibold">Ghi chú y tế:</span> {member.note}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-
-              {/* Card Footer Actions */}
-              <div className="px-5 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  leftIcon={<Eye className="w-3.5 h-3.5" />}
-                  onClick={() => handleOpenDetailModal(member)}
-                >
-                  Xem chi tiết
-                </Button>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(member)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-white transition-colors"
-                    title="Chỉnh sửa"
+                {/* Card Action Footer */}
+                <div className="px-5 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenDetailModal(pet)}
+                    leftIcon={<Eye className="w-3.5 h-3.5" />}
+                    className="text-xs text-slate-600"
                   >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDeleteDialog(member)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-white transition-colors"
-                    title="Xóa hồ sơ"
+                    Xem chi tiết
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
+                    onClick={() => navigate('/patient/book-appointment')}
+                    className="text-xs bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    Đặt Spa ngay
+                  </Button>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* ================= MODAL: ADD / EDIT FAMILY MEMBER ================= */}
+      {/* Modal Thêm / Chỉnh sửa hồ sơ Thú cưng */}
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        title={formMode === 'add' ? 'Thêm hồ sơ người thân' : 'Chỉnh sửa hồ sơ người thân'}
-        description="Thông tin này sẽ được dùng để đăng ký khám bệnh và lưu hồ sơ y tế."
-        maxWidth="max-w-lg"
-        footer={
-          <>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setIsFormModalOpen(false)}
-              disabled={isSubmitting}
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleFormSubmit}
-              isLoading={isSubmitting}
-            >
-              {formMode === 'add' ? 'Thêm người thân' : 'Lưu thay đổi'}
-            </Button>
-          </>
-        }
+        title={formMode === 'add' ? 'Thêm Hồ sơ Thú cưng Mới 🐾' : `Cập nhật Hồ sơ bé "${selectedMember?.name}"`}
+        size="md"
       >
-        <form onSubmit={handleFormSubmit} className="space-y-4">
-          <Input
-            label="Họ và tên người thân"
-            required
-            placeholder="Ví dụ: Nguyễn Văn Hùng"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            error={formErrors.name}
-            leftIcon={<User className="w-4 h-4" />}
-          />
+        <form onSubmit={handleSubmitForm} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Tên bé thú cưng *"
+              placeholder="VD: Milo, LuLu, Bông..."
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              error={formErrors.name}
+            />
+
+            <Select
+              label="Loại thú cưng *"
+              value={formData.petType}
+              onChange={(e) => setFormData({ ...formData, petType: e.target.value, relationship: e.target.value })}
+              options={PET_TYPE_OPTIONS}
+            />
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              label="Mối quan hệ"
-              required
-              value={formData.relationship}
-              onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-              error={formErrors.relationship}
-              options={RELATIONSHIP_OPTIONS}
+            <Input
+              label="Giống loài *"
+              placeholder="VD: Poodle, Corgi, Mèo Anh lông ngắn..."
+              value={formData.breed}
+              onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+              error={formErrors.breed}
+            />
+
+            <Input
+              label="Cân nặng ước tính (kg)"
+              type="number"
+              step="0.1"
+              placeholder="VD: 3.5"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Ngày sinh hoặc Độ tuổi *"
+              placeholder="VD: 15/05/2024 hoặc 2 tuổi"
+              value={formData.dateOfBirth}
+              onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+              error={formErrors.dateOfBirth}
             />
 
             <Select
               label="Giới tính"
-              required
               value={formData.gender}
               onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              error={formErrors.gender}
-              options={[
-                { value: 'Nam', label: 'Nam' },
-                { value: 'Nữ', label: 'Nữ' },
-                { value: 'Khác', label: 'Khác' },
-              ]}
+              options={GENDER_OPTIONS}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Ngày sinh"
-              required
-              placeholder="DD/MM/YYYY"
-              value={formData.dateOfBirth}
-              onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-              error={formErrors.dateOfBirth}
-              leftIcon={<Calendar className="w-4 h-4" />}
+              label="Mã định danh / Thẻ vòng cổ (Tag ID)"
+              placeholder="VD: TAG-MILO-01"
+              value={formData.idCard}
+              onChange={(e) => setFormData({ ...formData, idCard: e.target.value })}
             />
 
             <Input
-              label="Số điện thoại liên hệ"
-              placeholder="Ví dụ: 0903111222"
+              label="SĐT liên hệ khi cần đón bé"
+              placeholder="VD: 0901 234 567"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              leftIcon={<Phone className="w-4 h-4" />}
             />
           </div>
 
-          <Input
-            label="Địa chỉ cư trú"
-            placeholder="Địa chỉ hiện tại"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            leftIcon={<MapPin className="w-4 h-4" />}
-          />
-
-          <Input
-            label="Số CMND/CCCD hoặc Thẻ BHYT (nếu có)"
-            placeholder="Ví dụ: 079058001234"
-            value={formData.idCard}
-            onChange={(e) => setFormData({ ...formData, idCard: e.target.value })}
-          />
-
           <Textarea
-            label="Ghi chú sức khỏe / Dị ứng thuốc"
-            rows={2}
-            placeholder="Tiền sử dị ứng thuốc, bệnh lý mạn tính..."
+            label="Lưu ý đặc biệt cho chuyên viên chăm sóc"
+            placeholder="VD: Bé hơi nhát nước, thích tỉa gấu bông Teddy, đã tiêm vắc xin đầy đủ..."
+            rows={3}
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => setIsFormModalOpen(false)}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isSubmitting}
+              className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
+            >
+              {formMode === 'add' ? 'Lưu hồ sơ bé cưng' : 'Lưu thay đổi'}
+            </Button>
+          </div>
         </form>
       </Modal>
 
-      {/* ================= MODAL: DETAIL VIEW ================= */}
+      {/* Modal Chi tiết Thú cưng */}
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title="Chi tiết hồ sơ người thân"
-        maxWidth="max-w-md"
-        footer={
-          <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(false)}>
-            Đóng
-          </Button>
-        }
+        title={`Chi tiết Hồ sơ bé "${selectedMember?.name}"`}
+        size="md"
       >
         {selectedMember && (
           <div className="space-y-4 text-xs">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-base">
-                {selectedMember.name.charAt(0)}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-50/70 border border-amber-200">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-amber-200 flex items-center justify-center text-4xl shadow-xs">
+                {selectedMember.petType === 'Mèo' || selectedMember.relationship === 'Mèo' ? '🐱' : '🐶'}
               </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-900">{selectedMember.name}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" size="sm">
-                    {selectedMember.relationship}
-                  </Badge>
+                <h3 className="text-lg font-bold text-slate-900">{selectedMember.name}</h3>
+                <p className="text-slate-600 font-medium">{selectedMember.breed || 'Chưa rõ giống loài'}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <Badge variant="warning" size="sm">{selectedMember.petType || selectedMember.relationship || 'Chó'}</Badge>
                   <span className="text-slate-400">•</span>
-                  <span className="text-slate-600">{selectedMember.gender}</span>
+                  <span className="font-semibold text-slate-700">Cân nặng: {selectedMember.weight || '3.5'} kg</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2.5 text-slate-700">
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-400">Ngày sinh:</span>
-                <span className="font-medium">{selectedMember.dateOfBirth}</span>
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Giới tính</span>
+                <span className="font-semibold text-slate-800">{selectedMember.gender || 'Đực'}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-400">Số điện thoại:</span>
-                <span className="font-medium">{selectedMember.phone || 'Chưa cập nhật'}</span>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Ngày sinh / Tuổi</span>
+                <span className="font-semibold text-slate-800">{selectedMember.dateOfBirth || '--'}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-400">CMND / BHYT:</span>
-                <span className="font-mono font-medium">{selectedMember.idCard || 'Chưa cập nhật'}</span>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Mã thẻ vòng cổ</span>
+                <span className="font-semibold text-slate-800">{selectedMember.idCard || 'Chưa gắn'}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-400">Địa chỉ:</span>
-                <span className="font-medium text-right max-w-[200px]">{selectedMember.address || 'Chưa cập nhật'}</span>
+              <div>
+                <span className="text-slate-400 block text-[11px]">SĐT chủ đón</span>
+                <span className="font-semibold text-slate-800">{selectedMember.phone || currentUser?.phone || '--'}</span>
               </div>
-              {selectedMember.note && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-900 mt-2">
-                  <p className="font-bold mb-0.5">Tiền sử y tế / Dị ứng:</p>
-                  <p>{selectedMember.note}</p>
-                </div>
-              )}
+            </div>
+
+            {selectedMember.note && (
+              <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200 text-amber-900">
+                <span className="font-bold block mb-1">Ghi chú & Thói quen chăm sóc:</span>
+                <p className="leading-relaxed">{selectedMember.note}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDetailModalOpen(false)}
+              >
+                Đóng
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setIsDetailModalOpen(false);
+                  navigate('/patient/book-appointment');
+                }}
+                className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
+              >
+                Đặt lịch Spa cho bé này
+              </Button>
             </div>
           </div>
         )}
       </Modal>
 
-      {/* ================= DIALOG: CONFIRM DELETE ================= */}
+      {/* Dialog Xác nhận Xóa */}
       <Dialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
+        title="Xóa hồ sơ thú cưng?"
+        description={`Bạn có chắc chắn muốn xóa hồ sơ bé "${selectedMember?.name}" không? Thao tác này sẽ không thể khôi phục.`}
+        confirmLabel="Xác nhận xóa"
+        confirmVariant="danger"
         onConfirm={handleConfirmDelete}
-        title="Xác nhận xóa hồ sơ người thân"
-        message={`Bạn có chắc chắn muốn xóa hồ sơ người thân "${selectedMember?.name}" (${selectedMember?.relationship}) khỏi danh sách? Thao tác này không thể hoàn tác.`}
-        confirmText="Xác nhận xóa"
-        cancelText="Hủy bỏ"
-        variant="danger"
-        isLoading={isSubmitting}
       />
     </div>
   );

@@ -1,9 +1,10 @@
+import mongoose from 'mongoose';
 import { Doctor } from '../models/Doctor.js';
 import { Specialty } from '../models/Specialty.js';
 import { Appointment } from '../models/Appointment.js';
 
 /**
- * @desc   Lấy danh sách bác sĩ (hỗ trợ tìm kiếm và lọc chuyên khoa)
+ * @desc   Lấy danh sách chuyên viên / bác sĩ thú y (hỗ trợ tìm kiếm và lọc chuyên môn)
  * @route  GET /api/v1/doctors
  * @access Public
  */
@@ -33,15 +34,19 @@ export const getAllDoctors = async (req, res) => {
 };
 
 /**
- * @desc   Lấy chi tiết 1 bác sĩ
+ * @desc   Lấy chi tiết 1 chuyên viên / bác sĩ thú y
  * @route  GET /api/v1/doctors/:id
  * @access Public
  */
 export const getDoctorById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'ID chuyên viên không hợp lệ' });
+    }
+
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy bác sĩ' });
+      return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên viên' });
     }
 
     return res.status(200).json({
@@ -54,19 +59,26 @@ export const getDoctorById = async (req, res) => {
 };
 
 /**
- * @desc   Lấy danh sách các slot khám khả dụng của bác sĩ theo ngày
+ * @desc   Lấy danh sách các slot khám/spa khả dụng của chuyên viên theo ngày
  * @route  GET /api/v1/doctors/:id/available-slots
  * @access Public
  */
 export const getAvailableSlots = async (req, res) => {
   try {
     const { date } = req.query; // DD/MM/YYYY
-    const doctor = await Doctor.findById(req.params.id);
+    let doctor = null;
+
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      doctor = await Doctor.findById(req.params.id);
+    }
     if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Bác sĩ không tồn tại' });
+      doctor = await Doctor.findOne();
+    }
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Chuyên viên không tồn tại' });
     }
 
-    // Tìm các lịch hẹn đã đặt của bác sĩ vào ngày này
+    // Tìm các lịch hẹn đã đặt của chuyên viên vào ngày này
     const bookedAppointments = await Appointment.find({
       doctorId: doctor._id,
       date,
@@ -76,7 +88,16 @@ export const getAvailableSlots = async (req, res) => {
     const bookedTimes = bookedAppointments.map((a) => a.time);
 
     // Tính slot khả dụng
-    const slots = doctor.timeSlots.map((time) => ({
+    const slots = (doctor.timeSlots || [
+      '08:30 - 09:30',
+      '09:30 - 10:30',
+      '10:30 - 11:30',
+      '13:30 - 14:30',
+      '14:30 - 15:30',
+      '15:30 - 16:30',
+      '16:30 - 17:30',
+      '18:00 - 19:00',
+    ]).map((time) => ({
       time,
       isAvailable: !bookedTimes.includes(time),
     }));
@@ -94,8 +115,8 @@ export const getAvailableSlots = async (req, res) => {
 };
 
 /**
- * @desc   Lấy danh sách chuyên khoa & dịch vụ
- * @route  GET /api/v1/specialties
+ * @desc   Lấy danh sách dịch vụ của cửa hàng thú cưng
+ * @route  GET /api/v1/doctors/specialties hoặc /api/v1/specialties
  * @access Public
  */
 export const getAllSpecialties = async (req, res) => {
@@ -110,4 +131,3 @@ export const getAllSpecialties = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-

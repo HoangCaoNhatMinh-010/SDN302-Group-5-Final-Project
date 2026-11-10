@@ -32,9 +32,13 @@ const notificationSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
-        ret.id = ret._id.toString();
-        ret.userId = ret.userId.toString();
-        delete ret._id;
+        if (ret._id) {
+          ret.id = ret._id.toString();
+          delete ret._id;
+        }
+        if (ret.userId) {
+          ret.userId = ret.userId._id ? ret.userId._id.toString() : ret.userId.toString();
+        }
         delete ret.__v;
         return ret;
       },

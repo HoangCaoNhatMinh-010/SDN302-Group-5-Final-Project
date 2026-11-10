@@ -71,21 +71,15 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
           onClick={() => navigate('/')}
           className="flex items-center gap-2.5 cursor-pointer select-none"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 text-white shadow-sm shadow-primary-500/20">
-            <svg
-              className="w-5 h-5 fill-current"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-            </svg>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-primary-600 to-rose-500 text-white shadow-sm shadow-primary-500/20 text-lg">
+            🐾
           </div>
           <div className="hidden sm:block">
             <span className="text-base font-bold tracking-tight text-slate-900">
-              MedCare<span className="text-primary-600">Plus</span>
+              PawCare<span className="text-primary-600">Studio</span>
             </span>
-            <span className="ml-2 hidden rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-primary-700 md:inline-block border border-primary-200">
-              Phòng khám Đa khoa
+            <span className="ml-2 hidden rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 md:inline-block border border-amber-200">
+              Pet Spa & Grooming
             </span>
           </div>
         </div>
@@ -97,7 +91,7 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm bệnh nhân, bác sĩ, dịch vụ... (Ctrl + K)"
+            placeholder="Tìm kiếm thú cưng, dịch vụ spa, chuyên viên grooming..."
             className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
         </div>

@@ -72,20 +72,31 @@ export const LoginPage = () => {
   };
 
   // Direct 1-click Demo Login
-  const handleDirectDemoLogin = (r) => {
+  const handleDirectDemoLogin = async (r) => {
     if (r === ROLES.ADMIN) {
       setErrorMessage('Đăng nhập admin cần tài khoản có thật trong cơ sở dữ liệu. Hãy dùng ADMIN_EMAIL và ADMIN_PASSWORD đã cấu hình cho máy chủ.');
       return;
     }
     setIsLoading(true);
     setErrorMessage('');
-    setTimeout(() => {
-      login(r);
-      setIsLoading(false);
+    try {
+      if (r === ROLES.PATIENT) {
+        const res = await authService.login(DEMO_USERS[ROLES.PATIENT].email, 'password123');
+        login(res.user);
+      } else {
+        login(r);
+      }
       toast.success(`Đăng nhập thành công với vai trò: ${ROLE_LABELS[r]}`);
       const destination = getDashboardPath(r);
       navigate(destination, { replace: true });
-    }, 300);
+    } catch (err) {
+      // Fallback
+      login(r);
+      const destination = getDashboardPath(r);
+      navigate(destination, { replace: true });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -110,24 +121,18 @@ export const LoginPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-slate-100 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Clinic Logo */}
+        {/* Pet Care Logo */}
         <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-secondary-600 text-white shadow-lg shadow-primary-500/25 transition-transform group-hover:scale-105">
-            <svg
-              className="w-7 h-7 fill-current"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-            </svg>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-rose-500 to-primary-600 text-white shadow-lg shadow-amber-500/25 transition-transform group-hover:scale-105 text-2xl">
+            🐾
           </div>
         </Link>
 
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-          MedCare <span className="text-primary-600">Plus</span>
+          PawCare <span className="text-primary-600">Studio</span>
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Hệ thống đặt lịch khám & quản lý vận hành phòng khám
+          Cửa hàng Chăm sóc, Spa & Làm đẹp Thú Cưng Chuyên Nghiệp
         </p>
       </div>
 

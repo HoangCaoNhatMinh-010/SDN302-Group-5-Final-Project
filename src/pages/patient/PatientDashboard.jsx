@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarPlus,
-  Stethoscope,
+  Sparkles,
   CalendarDays,
   Clock,
   MapPin,
   CheckCircle,
   FileText,
-  UserPlus,
-  AlertCircle,
+  Heart,
   ChevronRight,
+  Scissors,
+  Smile,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
@@ -35,7 +37,7 @@ export const PatientDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
-  const [familyMembersCount, setFamilyMembersCount] = useState(3);
+  const [petsCount, setPetsCount] = useState(3);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -55,10 +57,10 @@ export const PatientDashboard = () => {
       }
 
       try {
-        // Tải người thân từ MongoDB
+        // Tải danh sách thú cưng từ MongoDB
         const fmRes = await familyMemberService.getFamilyMembers();
         if (fmRes && fmRes.data) {
-          setFamilyMembersCount(fmRes.data.length);
+          setPetsCount(fmRes.data.length);
         }
       } catch (err) {
         // fallback
@@ -77,7 +79,7 @@ export const PatientDashboard = () => {
   const cancelledList = appointments.filter((a) => a.status === 'CANCELLED' || a.status === 'NO_SHOW');
 
   const filterTabs = [
-    { id: 'upcoming', label: 'Lịch sắp tới', count: upcomingList.length },
+    { id: 'upcoming', label: 'Lịch Spa sắp tới', count: upcomingList.length },
     { id: 'completed', label: 'Lịch đã hoàn thành', count: completedList.length },
     { id: 'cancelled', label: 'Lịch đã hủy', count: cancelledList.length },
   ];
@@ -85,113 +87,117 @@ export const PatientDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <Breadcrumb items={[{ label: 'Tổng quan bệnh nhân' }]} />
+      <Breadcrumb items={[{ label: 'Tổng quan dịch vụ Thú Cưng' }]} />
 
-      {/* 1. Welcome Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-700 via-primary-600 to-secondary-600 p-6 sm:p-8 text-white shadow-elevated">
+      {/* 1. Pet Care Welcome Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-primary-600 p-6 sm:p-8 text-white shadow-elevated">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm mb-3">
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Mã hồ sơ: {currentUser?.patientCode || 'BN-2026-0892'}</span>
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm mb-3">
+            <span>🐾 PawCare Pet Spa & Grooming Studio</span>
+            <span className="text-amber-200">•</span>
+            <span>Mã khách hàng: {currentUser?.patientCode || 'PAW-VIP-0892'}</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Chào mừng, {currentUser?.name || 'Nguyễn Văn Minh'}
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Chào mừng {currentUser?.name || 'bạn'} và các bé thú cưng! 🐶🐱
           </h1>
-          <p className="mt-2 text-sm text-sky-100 leading-relaxed">
-            Chào mừng bạn đến hệ thống đặt lịch khám trực tuyến MedCare (Được phát triển bằng MongoDB & Express). Bạn có thể dễ dàng tra cứu lịch trống của bác sĩ, chủ động đặt lịch khám và quản lý người thân.
+          <p className="mt-2 text-sm text-rose-50 leading-relaxed">
+            Hệ thống đặt lịch chăm sóc, làm đẹp và spa chuyên nghiệp cho thú cưng tại PawCare Studio. Chủ động chọn gói dịch vụ, chuyên viên yêu thích và khung giờ linh hoạt cho các bé.
           </p>
 
-          {/* Quick Actions inside banner */}
+          {/* Quick Actions */}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
               variant="light"
               size="md"
-              leftIcon={<CalendarPlus className="w-4 h-4 text-primary-700" />}
+              leftIcon={<CalendarPlus className="w-4 h-4 text-rose-700" />}
               onClick={() => navigate('/patient/book-appointment')}
-              className="bg-white text-primary-700 hover:bg-slate-50 border-0 shadow-sm"
+              className="bg-white text-rose-700 hover:bg-rose-50 border-0 shadow-sm font-semibold"
             >
-              Đặt lịch khám
+              Đặt lịch Spa & Grooming
             </Button>
             <Button
               variant="outline"
               size="md"
-              leftIcon={<Stethoscope className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/patient/doctors')}
-              className="border-white/40 text-white hover:bg-white/10"
+              leftIcon={<Heart className="w-4 h-4 text-white" />}
+              onClick={() => navigate('/patient/family')}
+              className="border-white/50 text-white hover:bg-white/15"
             >
-              Xem bác sĩ
+              Hồ sơ Thú cưng ({petsCount})
             </Button>
             <Button
               variant="ghost"
               size="md"
-              leftIcon={<CalendarDays className="w-4 h-4 text-white" />}
-              onClick={() => navigate('/patient/appointments')}
-              className="text-white hover:bg-white/10"
+              leftIcon={<Sparkles className="w-4 h-4 text-white" />}
+              onClick={() => navigate('/patient/specialties')}
+              className="text-white hover:bg-white/15"
             >
-              Xem lịch hẹn
+              Bảng giá dịch vụ
             </Button>
           </div>
         </div>
 
         {/* Decorative background shape */}
-        <div className="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+        <div className="absolute -right-6 -bottom-8 text-white/10 text-9xl pointer-events-none select-none">
+          🐾
+        </div>
       </div>
 
       {/* 2. Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Lịch hẹn sắp tới"
+          title="Lịch Spa sắp tới"
           value={upcomingList.length.toString()}
           trend="Đã xác nhận"
           trendType="up"
-          trendLabel={upcomingList[0] ? `${upcomingList[0].date} lúc ${upcomingList[0].time}` : 'Chưa có lịch mới'}
-          icon={<CalendarDays className="w-5 h-5 text-primary-600" />}
-          iconColor="bg-primary-50 text-primary-600"
+          trendLabel={upcomingList[0] ? `${upcomingList[0].date} (${upcomingList[0].time})` : 'Chưa có lịch mới'}
+          icon={<CalendarDays className="w-5 h-5 text-amber-600" />}
+          iconColor="bg-amber-50 text-amber-600"
         />
         <StatCard
-          title="Hồ sơ gia đình"
-          value={familyMembersCount.toString()}
+          title="Thú cưng đã đăng ký"
+          value={petsCount.toString()}
           trend="Đã liên kết"
           trendType="neutral"
-          trendLabel="Hồ sơ người thân"
-          icon={<UserPlus className="w-5 h-5 text-teal-600" />}
-          iconColor="bg-teal-50 text-teal-600"
+          trendLabel="Chó, Mèo của bạn"
+          icon={<Heart className="w-5 h-5 text-rose-600" />}
+          iconColor="bg-rose-50 text-rose-600"
           onClick={() => navigate('/patient/family')}
         />
         <StatCard
-          title="Kết quả khám mới nhất"
-          value="Bình thường"
-          trend="Nội tổng quát"
+          title="Gói dịch vụ hot"
+          value="Combo Tắm & Cắt tỉa"
+          trend="Được yêu thích nhất"
           trendType="up"
-          trendLabel="Khám định kỳ gần nhất"
-          icon={<CheckCircle className="w-5 h-5 text-emerald-600" />}
-          iconColor="bg-emerald-50 text-emerald-600"
+          trendLabel="Form gấu Teddy Hàn Quốc"
+          icon={<Scissors className="w-5 h-5 text-purple-600" />}
+          iconColor="bg-purple-50 text-purple-600"
         />
         <StatCard
-          title="Chỉ định tái khám"
-          value="2 tuần nữa"
-          trend="Theo dõi huyết áp"
+          title="Nhắc lịch định kỳ"
+          value="Tắm spa hàng tuần"
+          trend="Chăm sóc da lông"
           trendType="neutral"
-          icon={<FileText className="w-5 h-5 text-sky-600" />}
-          iconColor="bg-sky-50 text-sky-600"
+          icon={<Sparkles className="w-5 h-5 text-emerald-600" />}
+          iconColor="bg-emerald-50 text-emerald-600"
         />
       </div>
 
-      {/* 3. Main Content Area: Appointments with Tabs */}
+      {/* 3. Main Content: Appointments with Tabs */}
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Danh sách lịch hẹn khám bệnh</CardTitle>
+            <CardTitle>Lịch hẹn chăm sóc & làm đẹp Thú Cưng</CardTitle>
             <CardDescription>
-              Dữ liệu đồng bộ trực tiếp từ cơ sở dữ liệu MongoDB
+              Theo dõi tiến trình tắm sấy, cắt tỉa và bàn giao bé tại cửa hàng PawCare
             </CardDescription>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate('/patient/book-appointment')}
-            leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
+            leftIcon={<CalendarPlus className="w-3.5 h-3.5 text-amber-600" />}
+            className="border-amber-300 text-amber-800 hover:bg-amber-50"
           >
             Đặt lịch mới
           </Button>
@@ -205,45 +211,62 @@ export const PatientDashboard = () => {
           {activeTab === 'upcoming' ? (
             <div className="space-y-4">
               {upcomingList.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  Bạn hiện không có lịch hẹn khám nào sắp tới.
+                <div className="py-12 text-center text-xs text-slate-400">
+                  <div className="text-3xl mb-2">🐾</div>
+                  Hiện bạn chưa có lịch hẹn chăm sóc thú cưng nào sắp tới.
+                  <div className="mt-3">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigate('/patient/book-appointment')}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      Đặt lịch cho bé ngay
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 upcomingList.map((apt) => (
                   <div
                     key={apt.id || apt.code}
-                    className="rounded-xl border border-primary-200 bg-sky-50/50 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/60 to-rose-50/40 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white border border-primary-200 text-primary-600 flex flex-col items-center justify-center flex-shrink-0 shadow-xs">
-                        <span className="text-[10px] font-bold uppercase text-slate-400">HẸN</span>
-                        <span className="text-sm font-extrabold text-primary-700">
-                          {apt.date ? apt.date.substring(0, 5) : '06/10'}
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-amber-200 text-amber-600 flex flex-col items-center justify-center flex-shrink-0 shadow-xs">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">LỊCH HẸN</span>
+                        <span className="text-sm font-black text-amber-700">
+                          {apt.date ? apt.date.substring(0, 5) : '10/11'}
                         </span>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-slate-900 text-sm">
-                            {apt.type || 'Khám bệnh'} - {apt.specialty}
+                          <h4 className="font-bold text-slate-900 text-sm">
+                            {apt.petName ? `🐾 Bé ${apt.petName}` : `🐾 Bé cưng`} - {apt.specialty || 'Combo Spa Thú cưng'}
                           </h4>
                           <StatusBadge status={apt.status} size="sm" />
                         </div>
 
                         <p className="mt-1 text-xs text-slate-600 font-medium">
-                          Bác sĩ khám: <span className="text-primary-700">{apt.doctorName}</span> {apt.patientName ? `(Bệnh nhân: ${apt.patientName})` : ''}
+                          Chuyên viên phụ trách: <span className="text-amber-800 font-semibold">{apt.doctorName}</span> {apt.type ? `• Gói: ${apt.type}` : ''}
                         </p>
 
                         <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="flex items-center gap-1 font-medium text-slate-700">
+                            <Clock className="w-3.5 h-3.5 text-amber-500" />
                             {apt.time} ({apt.date})
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            {apt.room || 'Phòng khám đa khoa MedCare'}
+                            {apt.room || 'PawCare Studio - Khu Làm Đẹp Thú Cưng'}
                           </span>
                         </div>
+
+                        {apt.symptoms && (
+                          <p className="mt-2 text-[11px] text-amber-900/80 bg-white/70 px-2.5 py-1 rounded-md border border-amber-100 inline-block">
+                            Lưu ý: {apt.symptoms}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -251,16 +274,17 @@ export const PatientDashboard = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => alert(`Mã lịch hẹn: ${apt.code || apt.id}\nVui lòng đến trước 15 phút để làm thủ tục check-in.`)}
+                        onClick={() => alert(`Mã lịch hẹn: ${apt.code || apt.id}\nĐịa chỉ: PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Q.1\nVui lòng mang bé đến trước 10 phút để chuyên viên kiểm tra lông da!`)}
                       >
-                        Xem chỉ dẫn
+                        Chỉ dẫn đón bé
                       </Button>
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={() => navigate('/patient/appointments')}
+                        className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                       >
-                        Chi tiết
+                        Chi tiết lịch
                       </Button>
                     </div>
                   </div>
@@ -271,18 +295,18 @@ export const PatientDashboard = () => {
             <div className="divide-y divide-slate-100">
               {completedList.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-400">
-                  Chưa có lịch khám nào đã hoàn thành.
+                  Chưa có lịch chăm sóc nào đã hoàn thành.
                 </div>
               ) : (
                 completedList.map((apt) => (
                   <div key={apt.id || apt.code} className="py-3.5 flex items-center justify-between text-xs">
                     <div>
-                      <p className="font-semibold text-slate-800">{apt.type || 'Khám bệnh'} - {apt.specialty}</p>
+                      <p className="font-semibold text-slate-800">{apt.petName ? `Bé ${apt.petName}` : 'Thú cưng'} - {apt.specialty}</p>
                       <p className="text-slate-500">{apt.doctorName} • {apt.date}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <StatusBadge status="COMPLETED" size="sm" />
-                      <Button variant="ghost" size="sm">Xem hồ sơ</Button>
+                      <Button variant="ghost" size="sm">Xem hóa đơn</Button>
                     </div>
                   </div>
                 ))

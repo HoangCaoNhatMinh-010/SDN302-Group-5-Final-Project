@@ -24,6 +24,9 @@ import {
   Cpu,
   BellRing,
   BarChart3,
+  Sparkles,
+  Heart,
+  Scissors,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
@@ -58,6 +61,9 @@ const ICON_MAP = {
   Cpu,
   BellRing,
   BarChart3,
+  Sparkles,
+  Heart,
+  Scissors,
 };
 
 export const Sidebar = ({

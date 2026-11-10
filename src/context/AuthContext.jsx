@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ROLES } from '../utils/constants';
 import { DEMO_USERS } from '../data/mockData';
+import { apiClient } from '../services/apiClient';
 
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = 'medcare_auth_state';
+const TOKEN_KEY = 'medcare_auth_token';
 
 export const AuthProvider = ({ children }) => {
   // Load persisted state or default to PATIENT demo account
@@ -31,6 +33,36 @@ export const AuthProvider = ({ children }) => {
       currentUser: DEMO_USERS[ROLES.PATIENT],
     };
   });
+
+  // Tự động đảm bảo luôn có Token hợp lệ cho người dùng hiện tại
+  useEffect(() => {
+    const ensureToken = async () => {
+      try {
+        const currentToken = localStorage.getItem(TOKEN_KEY);
+        // Nếu chưa có token hoặc token không hợp lệ
+        if (!currentToken || currentToken === 'undefined' || currentToken === 'null') {
+          const res = await apiClient.post('/auth/login', {
+            identifier: authState.currentUser?.email || 'minh.nguyen@example.com',
+            password: 'password123',
+          }).catch(() => null);
+
+          if (res && res.token) {
+            localStorage.setItem(TOKEN_KEY, res.token);
+            if (res.user) {
+              setAuthState((prev) => ({
+                ...prev,
+                currentUser: { ...prev.currentUser, ...res.user, id: res.user.id || res.user._id },
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi đồng bộ token ban đầu:', err.message);
+      }
+    };
+
+    ensureToken();
+  }, [authState.role]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -100,6 +132,11 @@ export const AuthProvider = ({ children }) => {
    * Logout user
    */
   const logout = () => {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch (e) {
+      // ignore
+    }
     setAuthState({
       isAuthenticated: false,
       role: null,

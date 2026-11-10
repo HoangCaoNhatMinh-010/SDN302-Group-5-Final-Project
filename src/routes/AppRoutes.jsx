@@ -23,9 +23,14 @@ import { ChangePasswordPage } from '../pages/common/ChangePasswordPage';
 import { NotificationsPage } from '../pages/common/NotificationsPage';
 import { PlaceholderPage } from '../pages/common/PlaceholderPage';
 
-// Patient Pages
+// Patient Pages (Pet Care)
 import { PatientDashboard } from '../pages/patient/PatientDashboard';
 import { FamilyMembersPage } from '../pages/patient/FamilyMembersPage';
+import { BookPetAppointmentPage } from '../pages/patient/BookPetAppointmentPage';
+import { PetServicesPage } from '../pages/patient/PetServicesPage';
+import { GroomersPage } from '../pages/patient/GroomersPage';
+import { PetAvailableSlotsPage } from '../pages/patient/PetAvailableSlotsPage';
+import { PetAppointmentsPage } from '../pages/patient/PetAppointmentsPage';
 
 // Other Role Dashboards
 import { ReceptionistDashboard } from '../pages/receptionist/ReceptionistDashboard';
@@ -117,7 +122,7 @@ export const AppRoutes = () => {
           path="patient/book-appointment"
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
-              <PlaceholderPage title="Đặt lịch khám" category="Dành cho Bệnh nhân" />
+              <BookPetAppointmentPage />
             </RoleRoute>
           }
         />
@@ -125,7 +130,7 @@ export const AppRoutes = () => {
           path="patient/doctors"
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
-              <PlaceholderPage title="Danh sách bác sĩ" category="Dành cho Bệnh nhân" />
+              <GroomersPage />
             </RoleRoute>
           }
         />
@@ -133,7 +138,7 @@ export const AppRoutes = () => {
           path="patient/specialties"
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
-              <PlaceholderPage title="Chuyên khoa & dịch vụ" category="Dành cho Bệnh nhân" />
+              <PetServicesPage />
             </RoleRoute>
           }
         />
@@ -141,7 +146,7 @@ export const AppRoutes = () => {
           path="patient/available-slots"
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
-              <PlaceholderPage title="Tra cứu lịch trống" category="Dành cho Bệnh nhân" />
+              <PetAvailableSlotsPage />
             </RoleRoute>
           }
         />
@@ -149,7 +154,7 @@ export const AppRoutes = () => {
           path="patient/appointments"
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
-              <PlaceholderPage title="Quản lý lịch hẹn khám" category="Dành cho Bệnh nhân" />
+              <PetAppointmentsPage />
             </RoleRoute>
           }
         />

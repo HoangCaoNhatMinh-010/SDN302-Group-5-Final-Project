@@ -8,25 +8,41 @@ const familyMemberSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Tên thú cưng (hoặc tên người thân)
     name: {
       type: String,
-      required: [true, 'Họ và tên người thân không được để trống'],
+      required: [true, 'Tên thú cưng không được để trống'],
       trim: true,
     },
+    // Loại thú cưng (Chó, Mèo, Hamster, Khác) hoặc mối quan hệ
     relationship: {
       type: String,
-      required: [true, 'Vui lòng chọn mối quan hệ'],
+      required: [true, 'Vui lòng chọn loại thú cưng hoặc phân loại'],
       trim: true,
+    },
+    petType: {
+      type: String,
+      default: 'Chó',
+      trim: true,
+    },
+    breed: {
+      type: String,
+      trim: true,
+      default: 'Chưa rõ',
+    },
+    weight: {
+      type: Number,
+      default: 3.5, // kg
     },
     dateOfBirth: {
       type: String,
-      required: [true, 'Vui lòng nhập ngày sinh'],
+      required: [true, 'Vui lòng nhập ngày sinh hoặc tuổi của thú cưng'],
       trim: true,
     },
     gender: {
       type: String,
-      enum: ['Nam', 'Nữ', 'Khác'],
-      required: [true, 'Vui lòng chọn giới tính'],
+      default: 'Đực',
+      trim: true,
     },
     phone: {
       type: String,
@@ -41,21 +57,25 @@ const familyMemberSchema = new mongoose.Schema(
     idCard: {
       type: String,
       trim: true,
-      default: '',
+      default: '', // Mã vòng cổ / Microchip / Thẻ thú cưng
     },
     note: {
       type: String,
       trim: true,
-      default: '',
+      default: '', // Thói quen, lưu ý khi tắm/cắt tỉa, tiêm phòng...
     },
   },
   {
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
-        ret.id = ret._id.toString();
-        ret.patientId = ret.patientId.toString();
-        delete ret._id;
+        if (ret._id) {
+          ret.id = ret._id.toString();
+          delete ret._id;
+        }
+        if (ret.patientId) {
+          ret.patientId = ret.patientId._id ? ret.patientId._id.toString() : ret.patientId.toString();
+        }
         delete ret.__v;
         return ret;
       },
@@ -64,4 +84,3 @@ const familyMemberSchema = new mongoose.Schema(
 );
 
 export const FamilyMember = mongoose.model('FamilyMember', familyMemberSchema);
-

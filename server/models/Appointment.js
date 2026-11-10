@@ -18,9 +18,19 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    petName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    petBreed: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     isForFamilyMember: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     familyMemberId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -44,7 +54,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     room: {
       type: String,
-      default: 'Phòng 204',
+      default: 'Khu Spa & Grooming - Bàn 1',
     },
     date: {
       type: String,
@@ -61,7 +71,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      default: 'Khám định kỳ',
+      default: 'Gói Chăm sóc Thú cưng',
     },
     symptoms: {
       type: String,
@@ -80,11 +90,13 @@ const appointmentSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
-        ret.id = ret._id.toString();
-        ret.patientId = ret.patientId.toString();
-        if (ret.familyMemberId) ret.familyMemberId = ret.familyMemberId.toString();
-        if (ret.doctorId) ret.doctorId = ret.doctorId.toString();
-        delete ret._id;
+        if (ret._id) {
+          ret.id = ret._id.toString();
+          delete ret._id;
+        }
+        if (ret.patientId) {
+          ret.patientId = ret.patientId._id ? ret.patientId._id.toString() : ret.patientId.toString();
+        }
         delete ret.__v;
         return ret;
       },
@@ -95,10 +107,9 @@ const appointmentSchema = new mongoose.Schema(
 // Auto generate code before save if not present
 appointmentSchema.pre('save', async function (next) {
   if (!this.code) {
-    this.code = `APT-${Math.floor(1000 + Math.random() * 9000)}`;
+    this.code = `PET-${Math.floor(1000 + Math.random() * 9000)}`;
   }
   next();
 });
 
 export const Appointment = mongoose.model('Appointment', appointmentSchema);
-
