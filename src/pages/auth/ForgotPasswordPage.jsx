@@ -9,7 +9,7 @@ export const ForgotPasswordPage = () => {
   const [identifier, setIdentifier] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,8 +22,8 @@ export const ForgotPasswordPage = () => {
 
     setIsLoading(true);
     try {
-      await authService.requestPasswordReset(identifier);
-      setSuccess(true);
+      const res = await authService.requestPasswordReset(identifier);
+      setSuccessInfo(res);
     } catch (err) {
       setError(err.message || 'Không thể gửi yêu cầu đặt lại mật khẩu.');
     } finally {
@@ -44,23 +44,32 @@ export const ForgotPasswordPage = () => {
           Quên mật khẩu?
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Nhập email hoặc số điện thoại để nhận hướng dẫn khôi phục mật khẩu
+          Nhập email hoặc số điện thoại để nhận mã OTP 6 số khôi phục mật khẩu
         </p>
       </div>
 
       <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <Card className="shadow-modal border-slate-200">
           <CardContent className="p-6 sm:p-8">
-            {success ? (
+            {successInfo ? (
               <div className="text-center py-4 space-y-4 animate-in fade-in">
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                   <CheckCircle className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Yêu cầu đã được tiếp nhận</h3>
+                <h3 className="text-lg font-bold text-slate-900">Đã gửi mã OTP khôi phục!</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Trong môi trường thử nghiệm (Demo), hệ thống đã tạo mã khôi phục cho tài khoản liên kết với{' '}
-                  <span className="font-semibold text-slate-800">{identifier}</span>.
+                  {successInfo.emailSent
+                    ? `Hệ thống đã gửi mã OTP 6 số thật tới địa chỉ Gmail `
+                    : `Hệ thống đã tạo mã OTP cho tài khoản `}
+                  <span className="font-semibold text-slate-800">{successInfo.targetEmail || identifier}</span>.
+                  Mã OTP có hiệu lực trong vòng <strong>{successInfo.expiresMinutes || 10} phút</strong>.
                 </p>
+
+                {successInfo.token && (
+                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 font-mono">
+                    Mã OTP tạm: <strong>{successInfo.token}</strong>
+                  </div>
+                )}
 
                 <div className="pt-2 space-y-2">
                   <Button
@@ -68,9 +77,16 @@ export const ForgotPasswordPage = () => {
                     size="md"
                     className="w-full"
                     rightIcon={<ArrowRight className="w-4 h-4" />}
-                    onClick={() => navigate('/reset-password')}
+                    onClick={() =>
+                      navigate('/reset-password', {
+                        state: {
+                          token: successInfo.token || '',
+                          identifier: successInfo.targetEmail || identifier,
+                        },
+                      })
+                    }
                   >
-                    Tiến hành Đặt lại mật khẩu mới
+                    Nhập mã OTP & Đặt lại mật khẩu mới
                   </Button>
                   <Button
                     variant="outline"
@@ -94,7 +110,7 @@ export const ForgotPasswordPage = () => {
                 <Input
                   label="Email hoặc Số điện thoại"
                   type="text"
-                  placeholder="Ví dụ: minh.nguyen@example.com hoặc 0901234567"
+                  placeholder="Ví dụ: tenban@gmail.com hoặc 0901234567"
                   value={identifier}
                   onChange={(e) => {
                     setIdentifier(e.target.value);
@@ -102,7 +118,7 @@ export const ForgotPasswordPage = () => {
                   }}
                   required
                   leftIcon={<Mail className="w-4 h-4" />}
-                  helperText="Hệ thống sẽ xác minh tài khoản và gửi liên kết đặt lại mật khẩu."
+                  helperText="Mã OTP 6 số sẽ được gửi qua SMTP Gmail đến email liên kết với tài khoản của bạn."
                 />
 
                 <div className="pt-2">
@@ -114,7 +130,7 @@ export const ForgotPasswordPage = () => {
                     isLoading={isLoading}
                     rightIcon={<ArrowRight className="w-4 h-4" />}
                   >
-                    Gửi yêu cầu khôi phục
+                    Gửi mã OTP khôi phục
                   </Button>
                 </div>
 

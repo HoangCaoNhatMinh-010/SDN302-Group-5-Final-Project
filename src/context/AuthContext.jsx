@@ -9,17 +9,17 @@ const STORAGE_KEY = 'medcare_auth_state';
 const TOKEN_KEY = 'medcare_auth_token';
 
 export const AuthProvider = ({ children }) => {
-  // Load persisted state or default to PATIENT demo account
   const [authState, setAuthState] = useState(() => {
     try {
+      const token = localStorage.getItem(TOKEN_KEY);
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
+      if (token && token !== 'undefined' && token !== 'null' && saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.role && (parsed.currentUser || DEMO_USERS[parsed.role])) {
+        if (parsed && parsed.isAuthenticated && parsed.role && parsed.currentUser) {
           return {
-            isAuthenticated: parsed.isAuthenticated ?? true,
+            isAuthenticated: true,
             role: parsed.role,
-            currentUser: parsed.currentUser || DEMO_USERS[parsed.role],
+            currentUser: parsed.currentUser,
           };
         }
       }
@@ -28,41 +28,50 @@ export const AuthProvider = ({ children }) => {
     }
 
     return {
-      isAuthenticated: true,
-      role: ROLES.PATIENT,
-      currentUser: DEMO_USERS[ROLES.PATIENT],
+      isAuthenticated: false,
+      role: null,
+      currentUser: null,
     };
   });
 
-  // Tự động đảm bảo luôn có Token hợp lệ cho người dùng hiện tại
+  // Xác minh phiên đăng nhập từ token hiện có khi khởi chạy ứng dụng
   useEffect(() => {
-    const ensureToken = async () => {
-      try {
-        const currentToken = localStorage.getItem(TOKEN_KEY);
-        // Nếu chưa có token hoặc token không hợp lệ
-        if (!currentToken || currentToken === 'undefined' || currentToken === 'null') {
-          const res = await apiClient.post('/auth/login', {
-            identifier: authState.currentUser?.email || 'minh.nguyen@example.com',
-            password: 'password123',
-          }).catch(() => null);
+    const currentToken = localStorage.getItem(TOKEN_KEY);
+    if (!authState.isAuthenticated || !currentToken || currentToken === 'undefined' || currentToken === 'null') {
+      if (authState.isAuthenticated) {
+        setAuthState({ isAuthenticated: false, role: null, currentUser: null });
+      }
+      return;
+    }
 
-          if (res && res.token) {
-            localStorage.setItem(TOKEN_KEY, res.token);
-            if (res.user) {
-              setAuthState((prev) => ({
-                ...prev,
-                currentUser: { ...prev.currentUser, ...res.user, id: res.user.id || res.user._id },
-              }));
-            }
-          }
+    let isMounted = true;
+    const syncSession = async () => {
+      try {
+        const meRes = await apiClient.get('/auth/me');
+        if (isMounted && meRes && meRes.data) {
+          setAuthState((prev) => ({
+            ...prev,
+            role: meRes.data.role || prev.role,
+            currentUser: { ...prev.currentUser, ...meRes.data, id: meRes.data.id || meRes.data._id },
+          }));
         }
-      } catch (err) {
-        console.warn('Lỗi đồng bộ token ban đầu:', err.message);
+      } catch {
+        if (isMounted) {
+          localStorage.removeItem(TOKEN_KEY);
+          setAuthState({
+            isAuthenticated: false,
+            role: null,
+            currentUser: null,
+          });
+        }
       }
     };
 
-    ensureToken();
-  }, [authState.role]);
+    syncSession();
+    return () => {
+      isMounted = false;
+    };
+  }, [authState.isAuthenticated]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -74,10 +83,29 @@ export const AuthProvider = ({ children }) => {
   }, [authState]);
 
   /**
-   * Set user role directly (e.g. for demo switcher or testing)
+   * Set user role directly (for demo switcher)
    */
-  const setRole = (newRole) => {
+  const setRole = async (newRole) => {
     if (!ROLES[newRole]) return;
+    if (newRole === ROLES.PATIENT) {
+      try {
+        const res = await apiClient.post('/auth/login', {
+          identifier: DEMO_USERS[ROLES.PATIENT].email,
+          password: 'password123',
+        });
+        if (res && res.token) {
+          localStorage.setItem(TOKEN_KEY, res.token);
+          setAuthState({
+            isAuthenticated: true,
+            role: newRole,
+            currentUser: res.user,
+          });
+          return;
+        }
+      } catch {
+        // fallback
+      }
+    }
     const user = DEMO_USERS[newRole];
     setAuthState({
       isAuthenticated: true,
@@ -87,9 +115,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Login with specified role or user object
+   * Login with specified role or user object + optional JWT token
    */
-  const login = (roleOrUser = ROLES.PATIENT) => {
+  const login = (roleOrUser = ROLES.PATIENT, token = null) => {
     let user;
     let targetRole;
 
@@ -104,11 +132,27 @@ export const AuthProvider = ({ children }) => {
       user = DEMO_USERS[ROLES.PATIENT];
     }
 
-    setAuthState({
+    if (token) {
+      try {
+        localStorage.setItem(TOKEN_KEY, token);
+      } catch {
+        // ignore
+      }
+    }
+
+    const nextState = {
       isAuthenticated: true,
       role: targetRole,
       currentUser: user,
-    });
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+    } catch {
+      // ignore
+    }
+
+    setAuthState(nextState);
     return user;
   };
 
@@ -129,12 +173,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Logout user
+   * Logout user cleanly
    */
   const logout = () => {
     try {
       localStorage.removeItem(TOKEN_KEY);
-    } catch (e) {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ isAuthenticated: false, role: null, currentUser: null })
+      );
+    } catch {
       // ignore
     }
     setAuthState({
@@ -148,7 +196,7 @@ export const AuthProvider = ({ children }) => {
    * Quick Switch to Demo Account
    */
   const switchDemoAccount = (targetRole) => {
-    setRole(targetRole);
+    return setRole(targetRole);
   };
 
   const value = {
@@ -165,10 +213,10 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

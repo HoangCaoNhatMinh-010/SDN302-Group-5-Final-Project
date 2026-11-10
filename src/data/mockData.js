@@ -68,7 +68,8 @@ export const NAV_ITEMS_BY_ROLE = {
     { label: 'Dịch vụ Spa & Grooming', path: '/patient/specialties', icon: 'Sparkles' },
     { label: 'Chuyên viên & Thú y', path: '/patient/doctors', icon: 'Users' },
     { label: 'Lịch trống tiệm', path: '/patient/available-slots', icon: 'Clock' },
-    { label: 'Lịch hẹn của bé', path: '/patient/appointments', icon: 'CalendarDays', badge: 3 },
+    { label: 'Lịch hẹn của bé', path: '/patient/appointments', icon: 'CalendarDays' },
+    { label: 'Nhắn tin & Tư vấn AI', path: '/patient/chat', icon: 'MessageCircle' },
     { label: 'Hồ sơ chủ nuôi', path: '/profile', icon: 'UserCircle' },
   ],
   [ROLES.RECEPTIONIST]: [

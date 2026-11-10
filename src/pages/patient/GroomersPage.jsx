@@ -1,33 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Users,
   Star,
-  Award,
   CalendarPlus,
-  Clock,
-  Sparkles,
-  Phone,
-  Mail,
-  ShieldCheck,
 } from 'lucide-react';
 import { doctorService } from '../../services/doctorService';
 import {
   Breadcrumb,
   Button,
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  Badge,
   LoadingState,
+  SearchInput,
 } from '../../components/common';
 
 export const GroomersPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [groomers, setGroomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '');
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchGroomers = async () => {
@@ -44,6 +40,13 @@ export const GroomersPage = () => {
 
     fetchGroomers();
   }, []);
+
+  const filteredGroomers = groomers.filter(
+    (g) =>
+      g.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      g.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      g.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
@@ -64,11 +67,23 @@ export const GroomersPage = () => {
         </p>
       </div>
 
+      <div className="max-w-md">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Tìm theo tên chuyên viên hoặc kỹ năng..."
+        />
+      </div>
+
       {isLoading ? (
         <LoadingState text="Đang tải danh sách chuyên viên..." />
+      ) : filteredGroomers.length === 0 ? (
+        <div className="py-12 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
+          Không tìm thấy chuyên viên phù hợp với từ khóa "{searchTerm}".
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {groomers.map((groomer) => (
+          {filteredGroomers.map((groomer) => (
             <Card
               key={groomer.id || groomer._id}
               className="border-slate-200/80 hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col justify-between"
@@ -112,7 +127,11 @@ export const GroomersPage = () => {
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() =>
+                    navigate('/patient/book-appointment', {
+                      state: { groomerId: groomer.id || groomer._id },
+                    })
+                  }
                   className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white text-xs font-semibold"
                 >
                   Đặt lịch với {groomer.name.split(' ').pop()}
@@ -125,4 +144,3 @@ export const GroomersPage = () => {
     </div>
   );
 };
-

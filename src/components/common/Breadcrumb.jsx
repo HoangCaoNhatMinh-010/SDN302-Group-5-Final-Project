@@ -5,6 +5,9 @@ import { ChevronRight, Home } from 'lucide-react';
 export const Breadcrumb = ({ items = [], className = '' }) => {
   if (!items || items.length === 0) return null;
 
+  // Tránh lặp lại "Trang chủ > Trang chủ" nếu caller truyền sẵn item Trang chủ ở vị trí đầu
+  const cleanItems = items.filter((item, idx) => !(idx === 0 && item.label === 'Trang chủ'));
+
   return (
     <nav className={`flex items-center text-xs text-slate-500 mb-4 ${className}`} aria-label="Breadcrumb">
       <ol className="inline-flex items-center space-x-1 sm:space-x-2">
@@ -17,8 +20,8 @@ export const Breadcrumb = ({ items = [], className = '' }) => {
             <span>Trang chủ</span>
           </Link>
         </li>
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+        {cleanItems.map((item, index) => {
+          const isLast = index === cleanItems.length - 1;
           return (
             <li key={item.label || index} className="inline-flex items-center">
               <ChevronRight className="w-3.5 h-3.5 text-slate-300 mx-1 flex-shrink-0" />

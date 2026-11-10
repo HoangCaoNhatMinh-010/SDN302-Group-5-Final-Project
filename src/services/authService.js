@@ -60,55 +60,61 @@ export const authService = {
   },
 
   /**
-   * Multi-step OTP Login
+   * Google OAuth Login / Auto-Register
    */
-  requestOtp: async (phone) => {
-    if (!phone || !phone.trim()) {
-      throw new Error('Vui lòng nhập số điện thoại');
+  googleLogin: async (googlePayload) => {
+    const response = await apiClient.post('/auth/google', googlePayload);
+
+    if (response && response.token) {
+      localStorage.setItem('medcare_auth_token', response.token);
     }
 
-    try {
-      const response = await apiClient.post('/auth/request-otp', {
-        phone: phone.trim(),
-      });
-      return response;
-    } catch (apiError) {
-      // Fallback
-      return {
-        success: true,
-        message: 'Mã xác thực OTP đã được tạo (Mã thử nghiệm: 123456)',
-        demoOtp: '123456',
-        isKnownPatient: true,
-      };
+    return {
+      success: true,
+      user: response.user,
+      token: response.token,
+      isNewUser: response.isNewUser,
+      message: response.message,
+    };
+  },
+
+  /**
+   * Multi-step OTP Login (qua Email Gmail thật)
+   */
+  requestOtp: async (identifier) => {
+    if (!identifier || !identifier.trim()) {
+      throw new Error('Vui lòng nhập email hoặc số điện thoại');
     }
+
+    return await apiClient.post('/auth/request-otp', {
+      identifier: identifier.trim(),
+      phone: identifier.trim(),
+    });
   },
 
   /**
    * Verify OTP and Login
    */
-  verifyOtpAndLogin: async (phone, otpCode) => {
+  verifyOtpAndLogin: async (identifier, otpCode) => {
     if (!otpCode || !otpCode.trim()) {
       throw new Error('Vui lòng nhập mã OTP');
     }
 
-    try {
-      const response = await apiClient.post('/auth/verify-otp', {
-        phone: phone.trim(),
-        otpCode: otpCode.trim(),
-      });
+    const response = await apiClient.post('/auth/verify-otp', {
+      identifier: identifier.trim(),
+      phone: identifier.trim(),
+      otpCode: otpCode.trim(),
+    });
 
-      if (response && response.token) {
-        localStorage.setItem('medcare_auth_token', response.token);
-      }
-
-      return {
-        success: true,
-        user: response.user,
-        token: response.token,
-      };
-    } catch (apiError) {
-      throw new Error(apiError.message || 'Mã OTP không hợp lệ');
+    if (response && response.token) {
+      localStorage.setItem('medcare_auth_token', response.token);
     }
+
+    return {
+      success: true,
+      user: response.user,
+      token: response.token,
+    };
   },
 
   /**
@@ -158,19 +164,33 @@ export const authService = {
   },
 
   /**
-   * Register a new patient account
+   * Send 6-digit OTP to user's Gmail before registration
    */
-  register: async ({ fullName, phone, email, password, confirmPassword, agreeTerms }) => {
+  sendRegisterOtp: async ({ fullName, phone, email, password, confirmPassword, agreeTerms }) => {
     if (!agreeTerms) {
       throw new Error('Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách quyền riêng tư');
     }
 
+    return await apiClient.post('/auth/register/send-otp', {
+      fullName,
+      phone,
+      email,
+      password,
+      confirmPassword,
+    });
+  },
+
+  /**
+   * Verify Gmail OTP and complete registration
+   */
+  register: async ({ fullName, phone, email, password, confirmPassword, otpCode }) => {
     const response = await apiClient.post('/auth/register', {
       fullName,
       phone,
       email,
       password,
       confirmPassword,
+      otpCode,
     });
 
     if (response && response.token) {
@@ -192,8 +212,11 @@ export const authService = {
   /**
    * Reset password
    */
-  resetPassword: async (newPassword, confirmPassword) => {
+  resetPassword: async (newPassword, confirmPassword, otpOrToken, identifier) => {
     return await apiClient.post('/auth/reset-password', {
+      otp: otpOrToken,
+      token: otpOrToken,
+      identifier,
       newPassword,
       confirmPassword,
     });

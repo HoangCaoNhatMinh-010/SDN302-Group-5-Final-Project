@@ -149,10 +149,21 @@ export const PetAvailableSlotsPage = () => {
                 {slotsData?.slots?.map((slot, index) => (
                   <div
                     key={index}
+                    onClick={() => {
+                      if (slot.isAvailable) {
+                        navigate('/patient/book-appointment', {
+                          state: {
+                            groomerId: selectedGroomerId,
+                            date: selectedDate,
+                            time: slot.time,
+                          },
+                        });
+                      }
+                    }}
                     className={`rounded-xl p-3 border text-center transition-all ${
                       slot.isAvailable
-                        ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-400'
-                        : 'border-slate-200 bg-slate-50 opacity-60'
+                        ? 'cursor-pointer border-emerald-200 bg-emerald-50/50 hover:border-emerald-500 hover:bg-emerald-50 shadow-xs'
+                        : 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
                     }`}
                   >
                     <div className="flex items-center justify-center gap-1 text-xs font-bold text-slate-800 mb-1">
@@ -161,7 +172,7 @@ export const PetAvailableSlotsPage = () => {
                     </div>
                     {slot.isAvailable ? (
                       <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        Nhận bé
+                        Chọn đặt ngay
                       </span>
                     ) : (
                       <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-600">
@@ -174,13 +185,20 @@ export const PetAvailableSlotsPage = () => {
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                 <p className="text-xs text-slate-500">
-                  Bạn có thể chọn lịch trực tiếp để được chuyên viên chăm sóc ngay khi đến.
+                  Bấm trực tiếp vào khung giờ trống để đặt lịch ngay với chuyên viên đã chọn.
                 </p>
                 <Button
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() =>
+                    navigate('/patient/book-appointment', {
+                      state: {
+                        groomerId: selectedGroomerId,
+                        date: selectedDate,
+                      },
+                    })
+                  }
                   className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs"
                 >
                   Đặt lịch theo khung giờ

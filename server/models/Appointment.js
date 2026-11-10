@@ -73,6 +73,37 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       default: 'Gói Chăm sóc Thú cưng',
     },
+    price: {
+      type: Number,
+      default: 180000,
+    },
+    bookingFee: {
+      type: Number,
+      default: 100,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['UNPAID', 'PENDING', 'PAID', 'FAILED'],
+      default: 'UNPAID',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['PAYOS', 'CASH'],
+      default: 'PAYOS',
+    },
+    payosOrderCode: {
+      type: Number,
+      index: true,
+      default: null,
+    },
+    payosCheckoutUrl: {
+      type: String,
+      default: '',
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
     symptoms: {
       type: String,
       default: '',

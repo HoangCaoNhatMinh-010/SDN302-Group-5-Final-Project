@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Appointment } from '../models/Appointment.js';
 import { Doctor } from '../models/Doctor.js';
+import { Specialty } from '../models/Specialty.js';
 import { FamilyMember } from '../models/FamilyMember.js';
 import { Notification } from '../models/Notification.js';
 
@@ -59,7 +60,7 @@ export const getAppointmentById = async (req, res) => {
 };
 
 /**
- * @desc   Đặt lịch khám/spa mới cho thú cưng
+ * @desc   Đặt lịch chăm sóc/spa mới cho thú cưng
  * @route  POST /api/v1/appointments
  * @access Private (Patient)
  */
@@ -67,12 +68,14 @@ export const createAppointment = async (req, res) => {
   try {
     const {
       doctorId,
+      serviceId,
+      serviceName,
+      price,
       date,
       time,
       type = 'Combo Tắm & Spa',
       symptoms = '',
       notes = '',
-      isForFamilyMember = true,
       familyMemberId = null,
     } = req.body;
 
@@ -91,10 +94,36 @@ export const createAppointment = async (req, res) => {
       doctor = await Doctor.findById(doctorId);
     }
     if (!doctor) {
-      doctor = await Doctor.findOne();
-    }
-    if (!doctor) {
       return res.status(404).json({ success: false, message: 'Chuyên viên không tồn tại' });
+    }
+
+    // Kiểm tra trùng khung giờ của chuyên viên trong cùng ngày
+    const existingConflict = await Appointment.findOne({
+      doctorId: doctor._id,
+      date,
+      time,
+      status: { $in: ['CONFIRMED', 'WAITING', 'IN_PROGRESS'] },
+    });
+
+    if (existingConflict) {
+      return res.status(400).json({
+        success: false,
+        message: `Khung giờ ${time} ngày ${date} của ${doctor.name} đã có khách đặt. Vui lòng chọn khung giờ hoặc chuyên viên khác.`,
+      });
+    }
+
+    // Lấy thông tin dịch vụ chính xác nếu có serviceId
+    let chosenServiceName = serviceName || type || doctor.specialty;
+    let chosenPrice = Number(price) || doctor.consultationFee || 180000;
+    let chosenRoom = doctor.room || 'Bàn Grooming - PawCare Studio';
+
+    if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
+      const serviceDoc = await Specialty.findById(serviceId);
+      if (serviceDoc) {
+        chosenServiceName = serviceDoc.name;
+        chosenPrice = serviceDoc.price;
+        if (serviceDoc.room) chosenRoom = serviceDoc.room;
+      }
     }
 
     let patientName = req.user.name;
@@ -102,9 +131,11 @@ export const createAppointment = async (req, res) => {
     let petBreed = 'Chưa rõ';
 
     if (familyMemberId && mongoose.Types.ObjectId.isValid(familyMemberId)) {
-      const familyMember = await FamilyMember.findById(familyMemberId);
+      const familyMember = await FamilyMember.findOne({
+        _id: familyMemberId,
+        patientId: req.user.id || req.user._id,
+      });
       if (familyMember) {
-        patientName = familyMember.name;
         petName = familyMember.name;
         petBreed = familyMember.breed || familyMember.relationship || 'Pet';
       }
@@ -119,12 +150,13 @@ export const createAppointment = async (req, res) => {
       familyMemberId: familyMemberId && mongoose.Types.ObjectId.isValid(familyMemberId) ? familyMemberId : null,
       doctorId: doctor._id,
       doctorName: doctor.name,
-      specialty: doctor.specialty || type,
-      room: doctor.room || 'Bàn Grooming - PawCare Studio',
+      specialty: chosenServiceName,
+      room: chosenRoom,
       date,
       time,
       status: 'CONFIRMED',
-      type,
+      type: type || chosenServiceName,
+      price: chosenPrice,
       symptoms,
       notes,
     });
@@ -133,7 +165,7 @@ export const createAppointment = async (req, res) => {
     await Notification.create({
       userId: req.user.id || req.user._id,
       title: 'Đặt lịch chăm sóc thành công 🐾',
-      message: `Lịch hẹn [${appointment.code}] cho bé ${petName} với ${doctor.name} lúc ${time} ngày ${date} đã được xác nhận.`,
+      message: `Lịch hẹn [${appointment.code}] gói "${chosenServiceName}" cho bé ${petName} với ${doctor.name} lúc ${time} ngày ${date} đã được xác nhận.`,
       type: 'appointment',
     });
 
@@ -170,7 +202,10 @@ export const cancelAppointment = async (req, res) => {
     }
 
     if (appointment.status === 'COMPLETED') {
-      return res.status(400).json({ success: false, message: 'Không thể hủy lịch khám đã hoàn thành' });
+      return res.status(400).json({ success: false, message: 'Không thể hủy lịch hẹn đã hoàn thành' });
+    }
+    if (appointment.status === 'CANCELLED') {
+      return res.status(400).json({ success: false, message: 'Lịch hẹn này đã được hủy trước đó' });
     }
 
     appointment.status = 'CANCELLED';
@@ -181,7 +216,7 @@ export const cancelAppointment = async (req, res) => {
     await Notification.create({
       userId: req.user.id || req.user._id,
       title: 'Hủy lịch chăm sóc thú cưng',
-      message: `Lịch hẹn [${appointment.code}] ngày ${appointment.date} đã được hủy thành công.`,
+      message: `Lịch hẹn [${appointment.code}] cho bé ${appointment.petName} ngày ${appointment.date} đã được hủy thành công.`,
       type: 'appointment',
     });
 

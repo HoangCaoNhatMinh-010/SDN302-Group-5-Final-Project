@@ -241,7 +241,7 @@ export const ProfilePage = () => {
             <CardDescription>
               {isEditing
                 ? 'Đang ở chế độ chỉnh sửa. Thay đổi thông tin và nhấn Lưu thay đổi.'
-                : 'Thông tin cá nhân đã được lưu trên hệ thống phòng khám.'}
+                : 'Thông tin chủ nuôi đã được lưu trên hệ thống cửa hàng PawCare Studio.'}
             </CardDescription>
           </div>
         </CardHeader>

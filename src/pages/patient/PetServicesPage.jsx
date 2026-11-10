@@ -109,7 +109,11 @@ export const PetServicesPage = () => {
                   variant="primary"
                   size="sm"
                   leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                  onClick={() => navigate('/patient/book-appointment')}
+                  onClick={() =>
+                    navigate('/patient/book-appointment', {
+                      state: { serviceId: service.id || service._id },
+                    })
+                  }
                   className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white text-xs font-semibold"
                 >
                   Đặt lịch gói này

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   User,
@@ -7,19 +7,26 @@ import {
   Lock,
   Eye,
   EyeOff,
-  CheckCircle,
-  AlertCircle,
   ArrowRight,
+  ArrowLeft,
+  RotateCw,
+  AlertCircle,
+  CheckCircle2,
+  PawPrint,
   ShieldCheck,
 } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Button, Input, Card, CardContent } from '../../components/common';
+import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const toast = useToast();
 
+  const [step, setStep] = useState(1); // 1: Fill registration form -> 2: Verify 6-digit Gmail OTP
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -29,265 +36,436 @@ export const RegisterPage = () => {
     agreeTerms: false,
   });
 
-  const [errors, setErrors] = useState({});
+  const [otpCode, setOtpCode] = useState('');
+  const [otpMeta, setOtpMeta] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [successInfo, setSuccessInfo] = useState(null);
+  const [error, setError] = useState('');
 
-  const validate = () => {
-    const newErrors = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Vui lòng nhập họ và tên của bạn';
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!phoneRegex.test(formData.phone.trim().replace(/\s+/g, ''))) {
-      newErrors.phone = 'Số điện thoại không hợp lệ (gồm 10 số, ví dụ: 0901234567)';
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      newErrors.email = 'Vui lòng nhập địa chỉ email';
-    } else if (!emailRegex.test(formData.email.trim())) {
-      newErrors.email = 'Định dạng email không hợp lệ (ví dụ: ten@example.com)';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có độ dài tối thiểu 6 ký tự';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Vui lòng xác nhận lại mật khẩu';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp';
-    }
-
-    if (!formData.agreeTerms) {
-      newErrors.agreeTerms = 'Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách quyền riêng tư';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (field) => (e) => {
+    const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: val }));
+    if (error) setError('');
   };
 
-  const handleSubmit = async (e) => {
+  // Bước 1: Kiểm tra thông tin & gửi mã OTP về Gmail
+  const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
-
+    setError('');
     setIsLoading(true);
-    setErrors({});
 
     try {
-      const res = await authService.register(formData);
-      setSuccessInfo(res);
-      toast.success('Đăng ký tài khoản Khách hàng thành công! 🐾');
+      const response = await authService.sendRegisterOtp(formData);
+      if (response.success) {
+        setOtpMeta(response);
+        setStep(2);
+        setCountdown(60);
+        setOtpCode(response.fallbackOtp || '');
+        toast.success(
+          response.emailSent
+            ? `Đã gửi mã xác thực 6 số tới ${response.targetEmail}`
+            : 'Đã tạo mã xác thực tài khoản!'
+        );
+      }
     } catch (err) {
-      setErrors({ form: err.message || 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.' });
+      setError(err.message || 'Không thể gửi mã xác thực Gmail. Vui lòng kiểm tra lại thông tin.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gửi lại mã OTP mới
+  const handleResendOtp = async () => {
+    if (countdown > 0 || isLoading) return;
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await authService.sendRegisterOtp(formData);
+      if (response.success) {
+        setOtpMeta(response);
+        setCountdown(60);
+        if (response.fallbackOtp) setOtpCode(response.fallbackOtp);
+        toast.success(`Đã gửi lại mã OTP mới tới ${response.targetEmail}`);
+      }
+    } catch (err) {
+      setError(err.message || 'Không thể gửi lại mã OTP.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Bước 2: Xác nhận mã OTP & Tạo tài khoản
+  const handleVerifyAndRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setError('Vui lòng nhập đủ 6 chữ số OTP đã được gửi đến Gmail của bạn.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authService.register({
+        ...formData,
+        otpCode: cleanOtp,
+      });
+      if (response.success) {
+        login(response.user, response.token);
+        toast.success('Xác thực Gmail và đăng ký tài khoản thành công!');
+        navigate('/patient/dashboard', { replace: true });
+      }
+    } catch (err) {
+      setError(err.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-slate-100 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Pet Care Logo */}
-        <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-rose-500 to-primary-600 text-white shadow-lg shadow-amber-500/25 transition-transform group-hover:scale-105 text-2xl">
-            🐾
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-teal-50/30 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
+      {/* Header Brand Logo */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center px-4">
+        <Link to="/" className="inline-flex items-center gap-2.5 mb-3 group">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-teal-600 text-white shadow-lg shadow-primary-500/20 transition-transform group-hover:scale-105">
+            <PawPrint className="w-5 h-5" />
           </div>
+          <span className="text-xl font-extrabold tracking-tight text-slate-900">
+            PawCare <span className="text-primary-600">Studio</span>
+          </span>
         </Link>
 
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-          Đăng ký Tài khoản Khách hàng
+          Đăng ký tài khoản thành viên
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Tạo tài khoản để đặt lịch spa, làm đẹp và theo dõi hồ sơ các bé thú cưng
+        <p className="mt-1 text-xs text-slate-500">
+          {step === 1
+            ? 'Điền thông tin cá nhân và xác thực Gmail để kích hoạt tài khoản'
+            : 'Nhập mã xác thực 6 chữ số vừa được gửi đến hộp thư Gmail của bạn'}
         </p>
       </div>
 
-      <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-xl px-4 sm:px-0">
-        <Card className="shadow-modal border-slate-200">
+      {/* Main Card */}
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
+        <Card className="shadow-modal border-slate-200/90">
           <CardContent className="p-6 sm:p-8">
-            {successInfo ? (
-              <div className="text-center py-6 space-y-4 animate-in fade-in zoom-in-95">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
-                  <CheckCircle className="w-9 h-9" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Đăng ký thành công!</h3>
-                <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                  Tài khoản của bạn đã được khởi tạo trong môi trường mô phỏng với vai trò{' '}
-                  <span className="font-semibold text-primary-700">Bệnh nhân</span>. Mã bệnh nhân dự kiến:{' '}
-                  <span className="font-mono font-bold text-slate-800">{successInfo.user.patientCode}</span>.
-                </p>
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-500 text-left space-y-1">
-                  <div>• Họ tên: <span className="font-medium text-slate-800">{successInfo.user.name}</span></div>
-                  <div>• Email: <span className="font-medium text-slate-800">{successInfo.user.email}</span></div>
-                  <div>• Số điện thoại: <span className="font-medium text-slate-800">{successInfo.user.phone}</span></div>
-                  <div className="pt-1 text-[11px] text-amber-700">
-                    * Lưu ý: Đây là hệ thống thử nghiệm mô phỏng frontend (Mock mode), dữ liệu chưa lưu vào cơ sở dữ liệu thật.
-                  </div>
-                </div>
-
-                <div className="pt-3">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                    onClick={() => navigate('/login')}
-                  >
-                    Chuyển đến màn hình Đăng nhập
-                  </Button>
-                </div>
+            {/* Step Indicator */}
+            <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    step === 1
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {step > 1 ? '✓' : '1'}
+                </span>
+                <span
+                  className={`text-xs font-semibold ${
+                    step === 1 ? 'text-slate-900' : 'text-emerald-700'
+                  }`}
+                >
+                  Thông tin tài khoản
+                </span>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {errors.form && (
-                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>{errors.form}</span>
-                  </div>
-                )}
+              <span className="text-slate-300">→</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    step === 2
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-100 text-slate-400'
+                  }`}
+                >
+                  2
+                </span>
+                <span
+                  className={`text-xs font-semibold ${
+                    step === 2 ? 'text-slate-900' : 'text-slate-400'
+                  }`}
+                >
+                  Xác thực Gmail
+                </span>
+              </div>
+            </div>
 
-                <Input
-                  label="Họ và tên"
-                  required
-                  placeholder="Ví dụ: Nguyễn Văn Minh"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  error={errors.fullName}
-                  leftIcon={<User className="w-4 h-4" />}
-                />
+            {error && (
+              <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs animate-in fade-in">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span className="leading-snug">{error}</span>
+              </div>
+            )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {step === 1 ? (
+              <>
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <Input
+                    label="Họ và tên"
+                    type="text"
+                    required
+                    placeholder="Nguyễn Văn A"
+                    value={formData.fullName}
+                    onChange={handleChange('fullName')}
+                    leftIcon={<User className="w-4 h-4" />}
+                  />
+
                   <Input
                     label="Số điện thoại"
+                    type="tel"
                     required
-                    placeholder="Ví dụ: 0901234567"
+                    placeholder="0901234567"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    error={errors.phone}
+                    onChange={handleChange('phone')}
                     leftIcon={<Phone className="w-4 h-4" />}
                   />
 
                   <Input
-                    label="Địa chỉ Email"
+                    label="Địa chỉ Email (Gmail)"
                     type="email"
                     required
-                    placeholder="name@example.com"
+                    placeholder="tenban@gmail.com"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    error={errors.email}
+                    onChange={handleChange('email')}
                     leftIcon={<Mail className="w-4 h-4" />}
+                    helperText="Hệ thống sẽ gửi mã OTP 6 chữ số đến email này để xác thực."
                   />
-                </div>
 
-                {/* Password field */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Mật khẩu
-                    <span className="text-rose-500 ml-1">*</span>
-                  </label>
-                  <div className="relative rounded-lg shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                      <Lock className="w-4 h-4" />
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Mật khẩu <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={formData.password}
+                        onChange={handleChange('password')}
+                        placeholder="Tối thiểu 6 ký tự"
+                        className="block w-full rounded-lg border border-slate-300 pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="Ít nhất 6 ký tự"
-                      className={`
-                        block w-full rounded-lg border text-sm transition-colors duration-150
-                        pl-10 pr-10 py-2 text-slate-800 placeholder-slate-400 bg-white
-                        ${errors.password ? 'border-rose-300 focus:border-rose-500' : 'border-slate-300 focus:border-primary-500'}
-                        focus:outline-none focus:ring-4 focus:ring-primary-500/20
-                      `}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
                   </div>
-                  {errors.password && <p className="mt-1 text-xs text-rose-600 font-medium">{errors.password}</p>}
-                </div>
 
-                {/* Confirm password */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Xác nhận mật khẩu
-                    <span className="text-rose-500 ml-1">*</span>
-                  </label>
-                  <div className="relative rounded-lg shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                      <Lock className="w-4 h-4" />
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Xác nhận mật khẩu <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={formData.confirmPassword}
+                        onChange={handleChange('confirmPassword')}
+                        placeholder="Nhập lại mật khẩu"
+                        className="block w-full rounded-lg border border-slate-300 pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      placeholder="Nhập lại mật khẩu"
-                      className={`
-                        block w-full rounded-lg border text-sm transition-colors duration-150
-                        pl-10 pr-10 py-2 text-slate-800 placeholder-slate-400 bg-white
-                        ${errors.confirmPassword ? 'border-rose-300 focus:border-rose-500' : 'border-slate-300 focus:border-primary-500'}
-                        focus:outline-none focus:ring-4 focus:ring-primary-500/20
-                      `}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-xs text-rose-600 font-medium">{errors.confirmPassword}</p>
-                  )}
-                </div>
 
-                {/* Terms Checkbox */}
-                <div className="pt-1">
-                  <label className="flex items-start gap-2.5 text-xs text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.agreeTerms}
-                      onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
-                      className="mt-0.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>
-                      Tôi đồng ý với{' '}
-                      <span className="text-primary-600 hover:underline">Điều khoản dịch vụ</span>{' '}
-                      và{' '}
-                      <span className="text-primary-600 hover:underline">Chính sách quyền riêng tư</span>{' '}
-                      của phòng khám MedCare Plus.
+                  {/* Terms & Conditions */}
+                  <div className="pt-1">
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.agreeTerms}
+                        onChange={handleChange('agreeTerms')}
+                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-xs text-slate-600 leading-relaxed">
+                        Tôi đồng ý với{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toast.info('Điều khoản dịch vụ & Chính sách bảo mật PawCare Studio');
+                          }}
+                          className="text-primary-600 hover:underline font-medium"
+                        >
+                          Điều khoản dịch vụ
+                        </button>{' '}
+                        và{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toast.info('Thông tin cá nhân và hồ sơ thú cưng được bảo mật tuyệt đối.');
+                          }}
+                          className="text-primary-600 hover:underline font-medium"
+                        >
+                          Chính sách quyền riêng tư
+                        </button>
+                        .
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      isLoading={isLoading}
+                      rightIcon={<ArrowRight className="w-4 h-4" />}
+                    >
+                      Tiếp tục &amp; Gửi mã xác thực Gmail
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Divider */}
+                <div className="relative my-5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-3 text-slate-400 font-medium">
+                      Hoặc đăng ký nhanh bằng
                     </span>
-                  </label>
-                  {errors.agreeTerms && (
-                    <p className="mt-1 text-xs text-rose-600 font-medium">{errors.agreeTerms}</p>
+                  </div>
+                </div>
+
+                <GoogleSignInButton text="Đăng ký nhanh với Google" />
+              </>
+            ) : (
+              /* Bước 2: Xác thực OTP Gmail */
+              <form onSubmit={handleVerifyAndRegister} className="space-y-4 animate-in fade-in">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-800 space-y-1.5">
+                  <div className="flex items-center gap-2 font-semibold text-emerald-900">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>
+                      {otpMeta?.emailSent
+                        ? 'Mã OTP đã được gửi đến Gmail của bạn!'
+                        : 'Đã tạo mã OTP xác thực'}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-emerald-700 leading-relaxed">
+                    Vui lòng kiểm tra hộp thư đến (hoặc mục Thư rác / Spam) của địa chỉ{' '}
+                    <strong className="text-emerald-950">{otpMeta?.targetEmail || formData.email}</strong>.
+                    Mã có hiệu lực trong <strong>{otpMeta?.expiresMinutes || 10} phút</strong>.
+                  </p>
+                  {otpMeta?.fallbackOtp && (
+                    <p className="pt-1 font-mono font-bold text-amber-800">
+                      Mã OTP: {otpMeta.fallbackOtp}
+                    </p>
                   )}
                 </div>
 
-                <div className="pt-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Nhập mã OTP xác thực Gmail (6 chữ số){' '}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                      autoFocus
+                      value={otpCode}
+                      onChange={(e) => {
+                        setOtpCode(e.target.value.replace(/\D/g, ''));
+                        if (error) setError('');
+                      }}
+                      placeholder="••••••"
+                      className="block w-full text-center font-mono text-2xl tracking-[0.45em] rounded-xl border border-slate-300 py-3 bg-white text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>Chưa nhận được email?</span>
+                  {countdown > 0 ? (
+                    <span className="font-medium text-slate-400">
+                      Gửi lại sau {countdown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isLoading}
+                      className="font-semibold text-primary-600 hover:text-primary-800 hover:underline flex items-center gap-1"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      Gửi lại mã OTP
+                    </button>
+                  )}
+                </div>
+
+                <div className="pt-2 space-y-2.5">
                   <Button
                     type="submit"
                     variant="primary"
                     size="lg"
                     className="w-full"
                     isLoading={isLoading}
+                    leftIcon={<ShieldCheck className="w-4 h-4" />}
                     rightIcon={<ArrowRight className="w-4 h-4" />}
                   >
-                    Hoàn tất đăng ký tài khoản
+                    Xác thực Gmail &amp; Tạo tài khoản
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-slate-600"
+                    leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      setStep(1);
+                      setError('');
+                    }}
+                  >
+                    Quay lại sửa thông tin đăng ký
                   </Button>
                 </div>
               </form>
@@ -295,12 +473,12 @@ export const RegisterPage = () => {
           </CardContent>
         </Card>
 
-        {/* Link back to login */}
-        <p className="mt-5 text-center text-xs text-slate-600">
-          Đã có tài khoản khám bệnh?{' '}
+        {/* Link back to Login */}
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Đã có tài khoản thành viên?{' '}
           <Link
             to="/login"
-            className="font-semibold text-primary-600 hover:text-primary-800 transition-colors hover:underline"
+            className="font-semibold text-primary-600 hover:text-primary-700 hover:underline"
           >
             Đăng nhập ngay
           </Link>

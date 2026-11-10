@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  CalendarPlus,
-  Heart,
-  Sparkles,
-  Scissors,
   CheckCircle,
   Clock,
-  Calendar,
-  AlertCircle,
   Plus,
-  ArrowRight,
-  User,
-  Shield,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { familyMemberService } from '../../services/familyMemberService';
 import { doctorService } from '../../services/doctorService';
 import { appointmentService } from '../../services/appointmentService';
+import { paymentService } from '../../services/paymentService';
+import { PayosPaymentModal } from '../../components/payment/PayosPaymentModal';
 import {
   Breadcrumb,
   Button,
@@ -27,32 +21,32 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  Badge,
-  Input,
   Textarea,
   LoadingState,
 } from '../../components/common';
 
-const TIME_SLOTS = [
-  '08:30 - 09:30',
-  '09:30 - 10:30',
-  '10:30 - 11:30',
-  '13:30 - 14:30',
-  '14:30 - 15:30',
-  '15:30 - 16:30',
-  '16:30 - 17:30',
-  '18:00 - 19:00',
+const DEFAULT_TIME_SLOTS = [
+  { time: '08:30 - 09:30', isAvailable: true },
+  { time: '09:30 - 10:30', isAvailable: true },
+  { time: '10:30 - 11:30', isAvailable: true },
+  { time: '13:30 - 14:30', isAvailable: true },
+  { time: '14:30 - 15:30', isAvailable: true },
+  { time: '15:30 - 16:30', isAvailable: true },
+  { time: '16:30 - 17:30', isAvailable: true },
+  { time: '18:00 - 19:00', isAvailable: true },
 ];
 
 export const BookPetAppointmentPage = () => {
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const preselect = location.state || {};
   const toast = useToast();
 
   const [pets, setPets] = useState([]);
   const [services, setServices] = useState([]);
   const [groomers, setGroomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form Selection States
@@ -60,12 +54,18 @@ export const BookPetAppointmentPage = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [selectedGroomer, setSelectedGroomer] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => {
+    if (preselect.date) return preselect.date;
     const today = new Date();
     today.setDate(today.getDate() + 1);
     return today.toISOString().split('T')[0];
   });
-  const [selectedTime, setSelectedTime] = useState('09:30 - 10:30');
+  const [slots, setSlots] = useState(DEFAULT_TIME_SLOTS);
+  const [selectedTime, setSelectedTime] = useState(preselect.time || '');
   const [specialNotes, setSpecialNotes] = useState('');
+
+  // PayOS Payment Modal State
+  const [payosData, setPayosData] = useState(null);
+  const [isPayosModalOpen, setIsPayosModalOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -80,19 +80,28 @@ export const BookPetAppointmentPage = () => {
         const loadedPets = petsRes.data || [];
         setPets(loadedPets);
         if (loadedPets.length > 0) {
-          setSelectedPet(loadedPets[0]);
+          const foundPet = preselect.petId
+            ? loadedPets.find((p) => (p.id || p._id) === preselect.petId)
+            : null;
+          setSelectedPet(foundPet || loadedPets[0]);
         }
 
         const loadedServices = servicesRes.data || [];
         setServices(loadedServices);
         if (loadedServices.length > 0) {
-          setSelectedService(loadedServices[0]);
+          const foundService = preselect.serviceId
+            ? loadedServices.find((s) => (s.id || s._id) === preselect.serviceId)
+            : null;
+          setSelectedService(foundService || loadedServices[0]);
         }
 
         const loadedGroomers = groomersRes.data || [];
         setGroomers(loadedGroomers);
         if (loadedGroomers.length > 0) {
-          setSelectedGroomer(loadedGroomers[0]);
+          const foundGroomer = preselect.groomerId
+            ? loadedGroomers.find((g) => (g.id || g._id) === preselect.groomerId)
+            : null;
+          setSelectedGroomer(foundGroomer || loadedGroomers[0]);
         }
       } catch (err) {
         toast.error('Không thể tải dữ liệu dịch vụ thú cưng.');
@@ -102,7 +111,42 @@ export const BookPetAppointmentPage = () => {
     };
 
     loadData();
-  }, []);
+  }, [preselect.petId, preselect.serviceId, preselect.groomerId]);
+
+  // Fetch real-time available slots whenever groomer or date changes
+  useEffect(() => {
+    const groomerId = selectedGroomer?.id || selectedGroomer?._id;
+    if (!groomerId || !selectedDate) return;
+
+    const fetchSlots = async () => {
+      setIsLoadingSlots(true);
+      try {
+        const dateParts = selectedDate.split('-');
+        const formattedDate =
+          dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : selectedDate;
+        const res = await doctorService.getAvailableSlots(groomerId, formattedDate);
+        const fetchedSlots = res?.slots && res.slots.length > 0 ? res.slots : DEFAULT_TIME_SLOTS;
+        setSlots(fetchedSlots);
+
+        // Giữ nguyên slot đang chọn nếu vẫn còn trống, nếu không chọn slot trống đầu tiên
+        setSelectedTime((prevTime) => {
+          const preTarget = preselect.time && fetchedSlots.find((s) => s.time === preselect.time && s.isAvailable);
+          if (preTarget) return preTarget.time;
+          const stillValid = fetchedSlots.find((s) => s.time === prevTime && s.isAvailable);
+          if (stillValid) return stillValid.time;
+          const firstAvailable = fetchedSlots.find((s) => s.isAvailable);
+          return firstAvailable ? firstAvailable.time : '';
+        });
+      } catch {
+        setSlots(DEFAULT_TIME_SLOTS);
+        setSelectedTime(DEFAULT_TIME_SLOTS[0].time);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+
+    fetchSlots();
+  }, [selectedGroomer, selectedDate]);
 
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
@@ -123,30 +167,48 @@ export const BookPetAppointmentPage = () => {
       return;
     }
     if (!selectedTime) {
-      toast.error('Vui lòng chọn khung giờ hẹn');
+      toast.error('Khung giờ này đã kín hoặc bạn chưa chọn giờ. Vui lòng chọn khung giờ trống khác!');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Format date to DD/MM/YYYY
       const dateParts = selectedDate.split('-');
       const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
 
       const payload = {
         doctorId: selectedGroomer.id || selectedGroomer._id,
+        serviceId: selectedService.id || selectedService._id,
+        serviceName: selectedService.name,
+        price: selectedService.price || 180000,
         date: formattedDate,
         time: selectedTime,
         type: selectedService.name,
-        symptoms: specialNotes ? `[${selectedPet.name} - ${selectedPet.breed || 'Pet'}]: ${specialNotes}` : `Chăm sóc bé ${selectedPet.name}`,
+        symptoms: specialNotes
+          ? `[${selectedPet.name} - ${selectedPet.breed || 'Pet'}]: ${specialNotes}`
+          : `Chăm sóc bé ${selectedPet.name}`,
         notes: `Gói ${selectedService.name} - Bé ${selectedPet.name} (${selectedPet.petType || 'Chó'})`,
         isForFamilyMember: true,
         familyMemberId: selectedPet.id || selectedPet._id,
       };
 
       const res = await appointmentService.createAppointment(payload);
-      toast.success(res.message || 'Đặt lịch chăm sóc bé thú cưng thành công! 🐾');
-      navigate('/patient/dashboard');
+      const createdApt = res.data;
+      toast.success('Đã tạo lịch hẹn! Vui lòng thanh toán phí giữ chỗ 100đ qua PayOS.');
+
+      // Tạo liên kết thanh toán PayOS (100đ cố định)
+      try {
+        const payRes = await paymentService.createPayosLink(createdApt.id || createdApt._id);
+        setPayosData({
+          ...payRes.data,
+          mode: payRes.mode,
+          payosNotice: payRes.payosNotice,
+        });
+        setIsPayosModalOpen(true);
+      } catch (payErr) {
+        toast.warning('Đã lưu lịch hẹn, bạn có thể thanh toán sau trong mục Lịch hẹn.');
+        navigate('/patient/appointments');
+      }
     } catch (err) {
       toast.error(err.message || 'Không thể hoàn tất đặt lịch. Vui lòng thử lại.');
     } finally {
@@ -157,6 +219,8 @@ export const BookPetAppointmentPage = () => {
   if (isLoading) {
     return <LoadingState text="Đang tải dịch vụ và lịch tiệm..." />;
   }
+
+  const hasAvailableSlot = slots.some((s) => s.isAvailable);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
@@ -219,7 +283,7 @@ export const BookPetAppointmentPage = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {pets.map((pet) => {
-                  const isSelected = selectedPet?.id === pet.id || selectedPet?._id === pet._id;
+                  const isSelected = (selectedPet?.id || selectedPet?._id) === (pet.id || pet._id);
                   const isCat = pet.petType === 'Mèo' || pet.relationship === 'Mèo';
                   return (
                     <div
@@ -268,7 +332,7 @@ export const BookPetAppointmentPage = () => {
           <CardContent className="pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {services.map((srv) => {
-                const isSelected = selectedService?.id === srv.id || selectedService?._id === srv._id;
+                const isSelected = (selectedService?.id || selectedService?._id) === (srv.id || srv._id);
                 return (
                   <div
                     key={srv.id || srv._id}
@@ -316,7 +380,7 @@ export const BookPetAppointmentPage = () => {
           <CardContent className="pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {groomers.map((doc) => {
-                const isSelected = selectedGroomer?.id === doc.id || selectedGroomer?._id === doc._id;
+                const isSelected = (selectedGroomer?.id || selectedGroomer?._id) === (doc.id || doc._id);
                 return (
                   <div
                     key={doc.id || doc._id}
@@ -352,7 +416,7 @@ export const BookPetAppointmentPage = () => {
           </CardContent>
         </Card>
 
-        {/* BƯỚC 4: Chọn Ngày & Giờ hẹn */}
+        {/* BƯỚC 4: Chọn Ngày & Giờ hẹn (kiểm tra slot thực tế từ DB) */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2.5">
@@ -361,7 +425,7 @@ export const BookPetAppointmentPage = () => {
               </div>
               <div>
                 <CardTitle className="text-base">Chọn Thời gian đến Cửa hàng</CardTitle>
-                <CardDescription>Cửa hàng mở cửa từ 08:30 đến 19:30 mỗi ngày</CardDescription>
+                <CardDescription>Cửa hàng mở cửa từ 08:30 đến 19:00 mỗi ngày (cập nhật khung giờ trống trực tiếp)</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -380,28 +444,53 @@ export const BookPetAppointmentPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">
-                Khung giờ hẹn *
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {TIME_SLOTS.map((slot) => {
-                  const isSelected = selectedTime === slot;
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setSelectedTime(slot)}
-                      className={`rounded-xl py-2.5 px-3 text-xs font-semibold border transition-all ${
-                        isSelected
-                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {slot}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Khung giờ hẹn của {selectedGroomer?.name || 'chuyên viên'} *
+                </label>
+                {isLoadingSlots && (
+                  <span className="flex items-center gap-1 text-[11px] text-amber-700">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Đang kiểm tra lịch trống...
+                  </span>
+                )}
               </div>
+
+              {!hasAvailableSlot ? (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>Chuyên viên này đã kín lịch trong ngày {selectedDate}. Vui lòng chọn ngày hoặc chuyên viên khác!</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {slots.map((slot) => {
+                    const isSelected = selectedTime === slot.time;
+                    return (
+                      <button
+                        key={slot.time}
+                        type="button"
+                        disabled={!slot.isAvailable}
+                        onClick={() => slot.isAvailable && setSelectedTime(slot.time)}
+                        className={`rounded-xl py-2.5 px-3 text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-0.5 ${
+                          !slot.isAvailable
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed line-through opacity-60'
+                            : isSelected
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                            : 'bg-slate-50 hover:bg-amber-50 hover:border-amber-300 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {slot.time}
+                        </span>
+                        <span className={`text-[10px] ${isSelected ? 'text-amber-100' : slot.isAvailable ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {slot.isAvailable ? 'Còn trống' : 'Đã kín'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div>
@@ -426,7 +515,16 @@ export const BookPetAppointmentPage = () => {
               Bé: <span className="font-bold">{selectedPet?.name || '--'}</span> ({selectedPet?.breed || 'Pet'}) • Gói: <span className="font-bold">{selectedService?.name || '--'}</span>
             </p>
             <p className="text-xs text-slate-600">
-              Chuyên viên: <span className="font-semibold">{selectedGroomer?.name || '--'}</span> • Thời gian: <span className="font-semibold">{selectedDate} ({selectedTime})</span>
+              Chuyên viên: <span className="font-semibold">{selectedGroomer?.name || '--'}</span> • Thời gian: <span className="font-semibold">{selectedDate} ({selectedTime || 'Chưa chọn'})</span>
+            </p>
+            <p className="text-xs text-slate-700 mt-1">
+              Giá gói dịch vụ (thanh toán tại tiệm):{' '}
+              <span className="font-bold">
+                {selectedService?.price ? selectedService.price.toLocaleString('vi-VN') + ' đ' : '180.000 đ'}
+              </span>
+            </p>
+            <p className="text-xs text-emerald-700 font-bold mt-0.5">
+              Phí đặt lịch giữ chỗ qua PayOS (cố định): 100 đ
             </p>
           </div>
 
@@ -444,15 +542,28 @@ export const BookPetAppointmentPage = () => {
               variant="primary"
               size="md"
               isLoading={isSubmitting}
+              disabled={!selectedTime || !hasAvailableSlot}
               leftIcon={<CheckCircle className="w-4 h-4" />}
               className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white font-bold"
             >
-              Xác nhận đặt lịch 🐾
+              Đặt lịch & Thanh toán 100đ (PayOS)
             </Button>
           </div>
         </div>
       </form>
+
+      {/* Modal Thanh toán PayOS */}
+      <PayosPaymentModal
+        isOpen={isPayosModalOpen}
+        onClose={() => {
+          setIsPayosModalOpen(false);
+          navigate('/patient/appointments');
+        }}
+        paymentData={payosData}
+        onPaymentSuccess={() => {
+          navigate('/patient/appointments');
+        }}
+      />
     </div>
   );
 };
-

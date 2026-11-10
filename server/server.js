@@ -11,6 +11,8 @@ import familyMemberRoutes from './routes/familyMemberRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
 // Load config
@@ -49,6 +51,8 @@ app.use('/api/v1/family-members', familyMemberRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // 404 Handler

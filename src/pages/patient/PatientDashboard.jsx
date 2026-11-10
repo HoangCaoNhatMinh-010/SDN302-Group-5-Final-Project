@@ -6,13 +6,8 @@ import {
   CalendarDays,
   Clock,
   MapPin,
-  CheckCircle,
-  FileText,
   Heart,
-  ChevronRight,
   Scissors,
-  Smile,
-  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
@@ -29,7 +24,7 @@ import {
   StatCard,
   StatusBadge,
   Tabs,
-  Badge,
+  Modal,
 } from '../../components/common';
 
 export const PatientDashboard = () => {
@@ -37,16 +32,14 @@ export const PatientDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
-  const [petsCount, setPetsCount] = useState(3);
-  const [isLoading, setIsLoading] = useState(true);
+  const [petsCount, setPetsCount] = useState(0);
+  const [selectedAptModal, setSelectedAptModal] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
-        // Tải lịch hẹn từ MongoDB
         const aptRes = await appointmentService.getMyAppointments();
-        if (aptRes && aptRes.data && aptRes.data.length > 0) {
+        if (aptRes && aptRes.data) {
           setAppointments(aptRes.data);
         } else {
           setAppointments(MOCK_APPOINTMENTS);
@@ -57,15 +50,12 @@ export const PatientDashboard = () => {
       }
 
       try {
-        // Tải danh sách thú cưng từ MongoDB
         const fmRes = await familyMemberService.getFamilyMembers();
         if (fmRes && fmRes.data) {
           setPetsCount(fmRes.data.length);
         }
-      } catch (err) {
-        // fallback
-      } finally {
-        setIsLoading(false);
+      } catch {
+        setPetsCount(3);
       }
     };
 
@@ -153,6 +143,7 @@ export const PatientDashboard = () => {
           trendLabel={upcomingList[0] ? `${upcomingList[0].date} (${upcomingList[0].time})` : 'Chưa có lịch mới'}
           icon={<CalendarDays className="w-5 h-5 text-amber-600" />}
           iconColor="bg-amber-50 text-amber-600"
+          onClick={() => navigate('/patient/appointments')}
         />
         <StatCard
           title="Thú cưng đã đăng ký"
@@ -172,14 +163,17 @@ export const PatientDashboard = () => {
           trendLabel="Form gấu Teddy Hàn Quốc"
           icon={<Scissors className="w-5 h-5 text-purple-600" />}
           iconColor="bg-purple-50 text-purple-600"
+          onClick={() => navigate('/patient/specialties')}
         />
         <StatCard
-          title="Nhắc lịch định kỳ"
-          value="Tắm spa hàng tuần"
-          trend="Chăm sóc da lông"
-          trendType="neutral"
+          title="Lịch đã hoàn thành"
+          value={completedList.length.toString()}
+          trend="Chăm sóc thành công"
+          trendType="up"
+          trendLabel="Xem hóa đơn dịch vụ"
           icon={<Sparkles className="w-5 h-5 text-emerald-600" />}
           iconColor="bg-emerald-50 text-emerald-600"
+          onClick={() => setActiveTab('completed')}
         />
       </div>
 
@@ -235,12 +229,12 @@ export const PatientDashboard = () => {
                       <div className="w-14 h-14 rounded-2xl bg-white border border-amber-200 text-amber-600 flex flex-col items-center justify-center flex-shrink-0 shadow-xs">
                         <span className="text-[10px] font-bold uppercase text-slate-400">LỊCH HẸN</span>
                         <span className="text-sm font-black text-amber-700">
-                          {apt.date ? apt.date.substring(0, 5) : '10/11'}
+                          {apt.date ? apt.date.substring(0, 5) : '11/11'}
                         </span>
                       </div>
 
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-bold text-slate-900 text-sm">
                             {apt.petName ? `🐾 Bé ${apt.petName}` : `🐾 Bé cưng`} - {apt.specialty || 'Combo Spa Thú cưng'}
                           </h4>
@@ -274,7 +268,7 @@ export const PatientDashboard = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => alert(`Mã lịch hẹn: ${apt.code || apt.id}\nĐịa chỉ: PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Q.1\nVui lòng mang bé đến trước 10 phút để chuyên viên kiểm tra lông da!`)}
+                        onClick={() => setSelectedAptModal(apt)}
                       >
                         Chỉ dẫn đón bé
                       </Button>
@@ -284,7 +278,7 @@ export const PatientDashboard = () => {
                         onClick={() => navigate('/patient/appointments')}
                         className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                       >
-                        Chi tiết lịch
+                        Quản lý lịch
                       </Button>
                     </div>
                   </div>
@@ -299,26 +293,127 @@ export const PatientDashboard = () => {
                 </div>
               ) : (
                 completedList.map((apt) => (
-                  <div key={apt.id || apt.code} className="py-3.5 flex items-center justify-between text-xs">
+                  <div key={apt.id || apt.code} className="py-3.5 flex items-center justify-between text-xs gap-4">
                     <div>
-                      <p className="font-semibold text-slate-800">{apt.petName ? `Bé ${apt.petName}` : 'Thú cưng'} - {apt.specialty}</p>
-                      <p className="text-slate-500">{apt.doctorName} • {apt.date}</p>
+                      <p className="font-semibold text-slate-800">
+                        {apt.petName ? `🐾 Bé ${apt.petName}` : 'Thú cưng'} - {apt.specialty}
+                      </p>
+                      <p className="text-slate-500 mt-0.5">
+                        {apt.doctorName} • {apt.date} ({apt.time}) • Chi phí:{' '}
+                        <strong className="text-emerald-700">{(apt.price || 180000).toLocaleString('vi-VN')} đ</strong>
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       <StatusBadge status="COMPLETED" size="sm" />
-                      <Button variant="ghost" size="sm">Xem hóa đơn</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedAptModal(apt)}
+                      >
+                        Xem hóa đơn
+                      </Button>
                     </div>
                   </div>
                 ))
               )}
             </div>
           ) : (
-            <div className="py-8 text-center text-xs text-slate-400">
-              {cancelledList.length === 0 ? 'Không có lịch hẹn nào bị hủy.' : `${cancelledList.length} lịch hẹn đã hủy.`}
+            <div className="divide-y divide-slate-100">
+              {cancelledList.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  Không có lịch hẹn nào bị hủy.
+                </div>
+              ) : (
+                cancelledList.map((apt) => (
+                  <div key={apt.id || apt.code} className="py-3.5 flex items-center justify-between text-xs gap-4">
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {apt.petName ? `🐾 Bé ${apt.petName}` : 'Thú cưng'} - {apt.specialty}
+                      </p>
+                      <p className="text-slate-500 mt-0.5">
+                        {apt.doctorName} • {apt.date} ({apt.time})
+                        {apt.cancelReason ? ` • Lý do: ${apt.cancelReason}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <StatusBadge status={apt.status} size="sm" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedAptModal(apt)}
+                      >
+                        Chi tiết
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Chi tiết Phiếu hẹn & Hóa đơn / Chỉ dẫn đón bé */}
+      <Modal
+        isOpen={!!selectedAptModal}
+        onClose={() => setSelectedAptModal(null)}
+        title={`Thông tin Phiếu Dịch Vụ [${selectedAptModal?.code || ''}]`}
+        size="md"
+      >
+        {selectedAptModal && (
+          <div className="space-y-4 text-xs">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50/70 border border-amber-200">
+              <div>
+                <p className="text-[11px] font-bold uppercase text-amber-700">PawCare Pet Spa & Grooming</p>
+                <h4 className="text-base font-bold text-slate-900 mt-0.5">
+                  🐾 Bé {selectedAptModal.petName || 'Thú cưng'}
+                </h4>
+                <p className="text-slate-500 mt-0.5">{selectedAptModal.petBreed || 'Thú cưng tại cửa hàng'}</p>
+              </div>
+              <StatusBadge status={selectedAptModal.status} size="md" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Gói dịch vụ</span>
+                <span className="font-semibold text-slate-900">{selectedAptModal.specialty}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Chi phí niêm yết</span>
+                <span className="font-bold text-emerald-700">
+                  {(selectedAptModal.price || 180000).toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Thời gian</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedAptModal.time} • {selectedAptModal.date}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Chuyên viên phụ trách</span>
+                <span className="font-semibold text-slate-800">{selectedAptModal.doctorName}</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-slate-400 block text-[11px]">Địa chỉ cửa hàng & Khu vực</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedAptModal.room || 'PawCare Studio'} • Số 123 Nguyễn Thị Minh Khai, Quận 1, TP.HCM
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 leading-relaxed">
+              <strong>Chỉ dẫn đưa & đón bé:</strong> Vui lòng mang theo sổ tiêm phòng (nếu có) và đưa bé đến cửa hàng <strong>PawCare Studio</strong> trước giờ hẹn 10 phút để làm thủ tục check-in.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button variant="outline" size="sm" onClick={() => setSelectedAptModal(null)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -1,30 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
   CalendarPlus,
   Clock,
   MapPin,
-  XCircle,
-  AlertCircle,
-  CheckCircle,
-  FileText,
-  User,
-  Scissors,
+  CreditCard,
+  CheckCircle2,
 } from 'lucide-react';
 import { appointmentService } from '../../services/appointmentService';
+import { paymentService } from '../../services/paymentService';
 import { useToast } from '../../context/ToastContext';
+import { PayosPaymentModal } from '../../components/payment/PayosPaymentModal';
 import {
   Breadcrumb,
   Button,
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
   StatusBadge,
   Tabs,
-  Badge,
+  Modal,
   Dialog,
   LoadingState,
   EmptyState,
@@ -32,16 +27,23 @@ import {
 
 export const PetAppointmentsPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
 
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
 
-  // Cancel Dialog
+  // Detail & Cancel Modals
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // PayOS Payment State
+  const [payosData, setPayosData] = useState(null);
+  const [isPayosModalOpen, setIsPayosModalOpen] = useState(false);
+  const [isCreatingPayos, setIsCreatingPayos] = useState(false);
 
   const loadAppointments = async () => {
     try {
@@ -55,13 +57,69 @@ export const PetAppointmentsPage = () => {
     }
   };
 
+  // Xử lý returnUrl từ cổng PayOS
+  useEffect(() => {
+    const paymentStatusParam = searchParams.get('payment');
+    const orderCodeParam = searchParams.get('orderCode');
+    const appointmentIdParam = searchParams.get('appointmentId');
+
+    if (paymentStatusParam === 'success' && orderCodeParam) {
+      paymentService
+        .verifyPayosPayment({
+          orderCode: orderCodeParam,
+          appointmentId: appointmentIdParam,
+          simulateSuccess: false,
+        })
+        .then((res) => {
+          toast.success(res.message || 'Thanh toán PayOS 100đ thành công!');
+          loadAppointments();
+        })
+        .catch((err) => {
+          toast.info(err.message || 'Đang kiểm tra giao dịch PayOS...');
+        })
+        .finally(() => {
+          setSearchParams({});
+        });
+    } else if (paymentStatusParam === 'cancelled') {
+      toast.info('Bạn đã hủy thao tác thanh toán trên cổng PayOS.');
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     loadAppointments();
   }, []);
 
+  const handleOpenDetailModal = (apt) => {
+    setSelectedAppointment(apt);
+    setIsDetailModalOpen(true);
+  };
+
   const handleOpenCancelDialog = (apt) => {
     setSelectedAppointment(apt);
     setIsCancelDialogOpen(true);
+  };
+
+  const handlePayNow = async (apt) => {
+    setIsCreatingPayos(true);
+    try {
+      const payRes = await paymentService.createPayosLink(apt.id || apt._id);
+      if (payRes.alreadyPaid) {
+        toast.info('Lịch hẹn này đã được thanh toán rồi.');
+        await loadAppointments();
+        return;
+      }
+      setPayosData({
+        ...payRes.data,
+        mode: payRes.mode,
+        payosNotice: payRes.payosNotice,
+      });
+      setIsPayosModalOpen(true);
+    } catch (err) {
+      toast.error(err.message || 'Không thể khởi tạo liên kết thanh toán PayOS.');
+    } finally {
+      setIsCreatingPayos(false);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -128,7 +186,7 @@ export const PetAppointmentsPage = () => {
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Danh sách Lịch hẹn Chăm sóc Bé</h1>
           <p className="mt-1 text-sm text-amber-50 max-w-xl">
-            Theo dõi tình trạng xác nhận, khung giờ hẹn, chuyên viên phụ trách và lịch sử làm đẹp của thú cưng tại cửa hàng.
+            Theo dõi tình trạng xác nhận, thanh toán phí đặt lịch (100đ qua PayOS), chuyên viên phụ trách và lịch sử làm đẹp của thú cưng.
           </p>
         </div>
         <Button
@@ -162,6 +220,9 @@ export const PetAppointmentsPage = () => {
             <div className="space-y-4">
               {filteredAppointments.map((apt) => {
                 const canCancel = apt.status === 'CONFIRMED' || apt.status === 'WAITING';
+                const isPaid = apt.paymentStatus === 'PAID';
+                const canPay = !isPaid && apt.status !== 'CANCELLED' && apt.status !== 'NO_SHOW';
+
                 return (
                   <div
                     key={apt.id || apt.code}
@@ -171,16 +232,26 @@ export const PetAppointmentsPage = () => {
                       <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex flex-col items-center justify-center flex-shrink-0">
                         <span className="text-[10px] font-bold uppercase text-slate-400">NGÀY</span>
                         <span className="text-sm font-black text-amber-800">
-                          {apt.date ? apt.date.substring(0, 5) : '10/11'}
+                          {apt.date ? apt.date.substring(0, 5) : '11/11'}
                         </span>
                       </div>
 
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-bold text-slate-900 text-sm">
                             {apt.petName ? `🐾 Bé ${apt.petName}` : '🐾 Thú cưng'} - {apt.specialty || 'Gói Spa'}
                           </h4>
                           <StatusBadge status={apt.status} size="sm" />
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Đã thanh toán {(apt.bookingFee || 100)}đ (PayOS)
+                            </span>
+                          ) : apt.status !== 'CANCELLED' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              Chưa thanh toán phí giữ chỗ (100đ)
+                            </span>
+                          )}
                         </div>
 
                         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
@@ -188,7 +259,9 @@ export const PetAppointmentsPage = () => {
                             Chuyên viên: <strong className="text-slate-800">{apt.doctorName}</strong>
                           </span>
                           <span>• Mã phiếu: <strong className="text-amber-800">{apt.code || apt.id}</strong></span>
-                          {apt.type && <span>• Gói: {apt.type}</span>}
+                          {apt.price && (
+                            <span>• Giá gói: <strong className="text-slate-800">{apt.price.toLocaleString('vi-VN')} đ</strong></span>
+                          )}
                         </div>
 
                         <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
@@ -210,7 +283,19 @@ export const PetAppointmentsPage = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end md:self-center">
+                    <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
+                      {canPay && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          isLoading={isCreatingPayos}
+                          leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+                          onClick={() => handlePayNow(apt)}
+                          className="text-xs bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white font-semibold"
+                        >
+                          Thanh toán PayOS (100đ)
+                        </Button>
+                      )}
                       {canCancel && (
                         <Button
                           variant="outline"
@@ -224,14 +309,10 @@ export const PetAppointmentsPage = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() =>
-                          alert(
-                            `MÃ LỊCH HẸN: ${apt.code || apt.id}\nThú cưng: ${apt.petName || 'Bé cưng'}\nGói: ${apt.specialty}\nThời gian: ${apt.time} ngày ${apt.date}\nChuyên viên: ${apt.doctorName}\nĐịa chỉ: PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Q.1`
-                          )
-                        }
+                        onClick={() => handleOpenDetailModal(apt)}
                         className="text-xs bg-amber-600 hover:bg-amber-700 border-amber-600 text-white font-medium"
                       >
-                        Chi tiết phiếu
+                        {apt.status === 'COMPLETED' ? 'Xem hóa đơn' : 'Chi tiết phiếu'}
                       </Button>
                     </div>
                   </div>
@@ -241,6 +322,84 @@ export const PetAppointmentsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Chi tiết Phiếu hẹn / Hóa đơn */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={`Chi tiết Phiếu Dịch vụ [${selectedAppointment?.code || ''}]`}
+        size="md"
+      >
+        {selectedAppointment && (
+          <div className="space-y-4 text-xs">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50/70 border border-amber-200">
+              <div>
+                <p className="text-[11px] font-bold uppercase text-amber-700">PawCare Pet Spa & Grooming</p>
+                <h4 className="text-base font-bold text-slate-900 mt-0.5">
+                  🐾 Bé {selectedAppointment.petName || 'Thú cưng'}
+                </h4>
+                <p className="text-slate-500 mt-0.5">{selectedAppointment.petBreed || 'Thú cưng tại cửa hàng'}</p>
+              </div>
+              <StatusBadge status={selectedAppointment.status} size="md" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Gói dịch vụ</span>
+                <span className="font-semibold text-slate-900">{selectedAppointment.specialty}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Giá gói dịch vụ</span>
+                <span className="font-bold text-slate-800">
+                  {(selectedAppointment.price || 180000).toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Phí đặt lịch PayOS</span>
+                <span className={`font-bold ${selectedAppointment.paymentStatus === 'PAID' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {(selectedAppointment.bookingFee || 100)} đ ({selectedAppointment.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'})
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Thời gian hẹn</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedAppointment.time} • {selectedAppointment.date}
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-slate-400 block text-[11px]">Chuyên viên & Khu vực thực hiện</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedAppointment.doctorName} • {selectedAppointment.room || 'PawCare Studio - Số 123 Nguyễn Thị Minh Khai, Quận 1, TP.HCM'}
+                </span>
+              </div>
+            </div>
+
+            {selectedAppointment.symptoms && (
+              <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-100 text-amber-900">
+                <span className="font-bold block mb-1">Ghi chú chăm sóc:</span>
+                <p>{selectedAppointment.symptoms}</p>
+              </div>
+            )}
+
+            {selectedAppointment.cancelReason && selectedAppointment.status === 'CANCELLED' && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+                <span className="font-bold block mb-1">Lý do hủy lịch:</span>
+                <p>{selectedAppointment.cancelReason}</p>
+              </div>
+            )}
+
+            <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 leading-relaxed">
+              <strong>Lưu ý đón & đưa bé:</strong> Vui lòng mang bé đến cửa hàng <strong>PawCare Studio</strong> trước 10 phút để chuyên viên kiểm tra tình trạng da lông và tư vấn kiểu dáng phù hợp nhất.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(false)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Dialog Hủy lịch */}
       <Dialog
@@ -253,7 +412,16 @@ export const PetAppointmentsPage = () => {
         isLoading={isCancelling}
         onConfirm={handleConfirmCancel}
       />
+
+      {/* Modal Thanh toán PayOS */}
+      <PayosPaymentModal
+        isOpen={isPayosModalOpen}
+        onClose={() => setIsPayosModalOpen(false)}
+        paymentData={payosData}
+        onPaymentSuccess={() => {
+          loadAppointments();
+        }}
+      />
     </div>
   );
 };
-

@@ -7,8 +7,9 @@ import { Notification } from '../models/Notification.js';
  */
 export const getMyNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 });
-    const unreadCount = await Notification.countDocuments({ userId: req.user.id, read: false });
+    const userId = req.user.id || req.user._id;
+    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
+    const unreadCount = await Notification.countDocuments({ userId, read: false });
 
     return res.status(200).json({
       success: true,
@@ -27,8 +28,9 @@ export const getMyNotifications = async (req, res) => {
  */
 export const markAsRead = async (req, res) => {
   try {
+    const userId = req.user.id || req.user._id;
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
+      { _id: req.params.id, userId },
       { read: true },
       { new: true }
     );
@@ -53,7 +55,8 @@ export const markAsRead = async (req, res) => {
  */
 export const markAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ userId: req.user.id, read: false }, { read: true });
+    const userId = req.user.id || req.user._id;
+    await Notification.updateMany({ userId, read: false }, { read: true });
 
     return res.status(200).json({
       success: true,
@@ -64,3 +67,21 @@ export const markAllAsRead = async (req, res) => {
   }
 };
 
+/**
+ * @desc   Xóa tất cả thông báo của người dùng
+ * @route  DELETE /api/v1/notifications
+ * @access Private
+ */
+export const clearAllNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    await Notification.deleteMany({ userId });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã xóa tất cả thông báo',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

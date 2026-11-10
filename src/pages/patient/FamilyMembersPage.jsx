@@ -365,7 +365,11 @@ export const FamilyMembersPage = () => {
                     variant="primary"
                     size="sm"
                     leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}
-                    onClick={() => navigate('/patient/book-appointment')}
+                    onClick={() =>
+                      navigate('/patient/book-appointment', {
+                        state: { petId: pet.id || pet._id },
+                      })
+                    }
                     className="text-xs bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
                   >
                     Đặt Spa ngay
@@ -547,7 +551,9 @@ export const FamilyMembersPage = () => {
                 size="sm"
                 onClick={() => {
                   setIsDetailModalOpen(false);
-                  navigate('/patient/book-appointment');
+                  navigate('/patient/book-appointment', {
+                    state: { petId: selectedMember.id || selectedMember._id },
+                  });
                 }}
                 className="bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
               >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu,
@@ -7,40 +7,41 @@ import {
   LogOut,
   User,
   Shield,
-  Check,
   ChevronDown,
-  Sparkles,
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ROLES, ROLE_LABELS } from '../../utils/constants';
-import { DEMO_USERS, MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { MOCK_NOTIFICATIONS } from '../../data/mockData';
+import { notificationService } from '../../services/notificationService';
 import { Avatar, Badge, Dropdown, DropdownItem, DropdownDivider } from '../common';
 
 export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
-  const { currentUser, role, logout, setRole } = useAuth();
+  const { currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        if (role === ROLES.PATIENT) {
+          const res = await notificationService.getMyNotifications();
+          if (res && res.data) {
+            setUnreadNotifications(res.data);
+          }
+        }
+      } catch {
+        // fallback
+      }
+    };
+    fetchNotifs();
+  }, [location.pathname, role]);
 
   const unreadCount = unreadNotifications.filter((n) => !n.read).length;
-
-  const handleRoleSwitch = (newRole) => {
-    setRole(newRole);
-    toast.success(`Đã chuyển sang vai trò: ${ROLE_LABELS[newRole]}`);
-    
-    // Navigate to new role dashboard
-    const roleRoutes = {
-      [ROLES.PATIENT]: '/patient/dashboard',
-      [ROLES.RECEPTIONIST]: '/receptionist/dashboard',
-      [ROLES.DOCTOR]: '/doctor/dashboard',
-      [ROLES.ADMIN]: '/admin/dashboard',
-      [ROLES.CLINIC_MANAGER]: '/manager/dashboard',
-    };
-    navigate(roleRoutes[newRole] || '/');
-  };
 
   const handleLogout = () => {
     logout();
@@ -48,15 +49,28 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
     navigate('/login');
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+    } catch {
+      // ignore
+    }
     setUnreadNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     toast.success('Đã đánh dấu đã đọc tất cả thông báo');
   };
 
+  const handleSearchSubmit = (e) => {
+    if (e.key === 'Enter' && searchKeyword.trim()) {
+      if (role === ROLES.PATIENT) {
+        navigate(`/patient/doctors?search=${encodeURIComponent(searchKeyword.trim())}`);
+      }
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
+    <header className="flex-shrink-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white px-4 sm:px-6">
       {/* Left side: Hamburger button + Logo */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-shrink-0">
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -69,16 +83,16 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
         {/* Logo and Brand */}
         <div
           onClick={() => navigate('/')}
-          className="flex items-center gap-2.5 cursor-pointer select-none"
+          className="flex items-center gap-2.5 cursor-pointer select-none whitespace-nowrap"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-primary-600 to-rose-500 text-white shadow-sm shadow-primary-500/20 text-lg">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-primary-600 to-rose-500 text-white shadow-sm shadow-primary-500/20 text-lg flex-shrink-0">
             🐾
           </div>
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex items-center">
             <span className="text-base font-bold tracking-tight text-slate-900">
               PawCare<span className="text-primary-600">Studio</span>
             </span>
-            <span className="ml-2 hidden rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 md:inline-block border border-amber-200">
+            <span className="ml-2 hidden rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 xl:inline-block border border-amber-200">
               Pet Spa & Grooming
             </span>
           </div>
@@ -86,73 +100,30 @@ export const Header = ({ onToggleSidebar, isSidebarCollapsed }) => {
       </div>
 
       {/* Middle: Search input (hidden on mobile) */}
-      <div className="hidden md:flex items-center max-w-xs lg:max-w-md w-full mx-4">
+      <div className="hidden md:flex items-center max-w-xs lg:max-w-sm w-full mx-4">
         <div className="relative w-full">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm thú cưng, dịch vụ spa, chuyên viên grooming..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onKeyDown={handleSearchSubmit}
+            placeholder="Tìm kiếm chuyên viên grooming..."
             className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
         </div>
       </div>
 
-      {/* Right side: Role Switcher + Notifications + User Avatar */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Fast Role Switcher (Crucial for Reviewer / Multi-role simulation) */}
-        <Dropdown
-          align="right"
-          trigger={
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all">
-              <Shield className="w-3.5 h-3.5 text-primary-600" />
-              <span className="hidden lg:inline text-slate-500">Vai trò:</span>
-              <span className="font-semibold text-slate-800">
-                {ROLE_LABELS[role] || 'Chọn vai trò'}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-            </div>
-          }
-        >
-          <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-800 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Chuyển vai trò thử nghiệm
-            </p>
-            <p className="text-[11px] text-slate-400">
-              Chọn tài khoản demo để trải nghiệm giao diện
-            </p>
+      {/* Right side: Role Badge + Notifications + User Avatar */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {role && (
+          <div className="hidden md:flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 whitespace-nowrap">
+            <Shield className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
+            <span className="font-semibold text-slate-800 max-w-[160px] truncate">
+              {ROLE_LABELS[role] || role}
+            </span>
           </div>
-          {Object.values(ROLES).map((r) => {
-            const isCurrent = role === r;
-            const demoUser = DEMO_USERS[r];
-            return (
-              <button
-                key={r}
-                onClick={() => handleRoleSwitch(r)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors ${
-                  isCurrent
-                    ? 'bg-primary-50 font-semibold text-primary-700'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span>{ROLE_LABELS[r]}</span>
-                    {isCurrent && (
-                      <span className="text-[10px] bg-primary-100 text-primary-800 px-1.5 py-0.2 rounded font-normal">
-                        Hiện tại
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-normal">
-                    {demoUser?.name}
-                  </span>
-                </div>
-                {isCurrent && <Check className="w-4 h-4 text-primary-600 flex-shrink-0" />}
-              </button>
-            );
-          })}
-        </Dropdown>
+        )}
 
         {/* Notifications Dropdown */}
         <Dropdown

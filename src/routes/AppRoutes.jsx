@@ -31,6 +31,7 @@ import { PetServicesPage } from '../pages/patient/PetServicesPage';
 import { GroomersPage } from '../pages/patient/GroomersPage';
 import { PetAvailableSlotsPage } from '../pages/patient/PetAvailableSlotsPage';
 import { PetAppointmentsPage } from '../pages/patient/PetAppointmentsPage';
+import { PetChatAndAiPage } from '../pages/patient/PetChatAndAiPage';
 
 // Other Role Dashboards
 import { ReceptionistDashboard } from '../pages/receptionist/ReceptionistDashboard';
@@ -155,6 +156,14 @@ export const AppRoutes = () => {
           element={
             <RoleRoute allowedRoles={[ROLES.PATIENT]}>
               <PetAppointmentsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="patient/chat"
+          element={
+            <RoleRoute allowedRoles={[ROLES.PATIENT]}>
+              <PetChatAndAiPage />
             </RoleRoute>
           }
         />
